@@ -1,0 +1,21 @@
+{
+  "name": "gorev-takip",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.7.1",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @gorev/api --filter @gorev/web dev",
+    "dev:api": "pnpm --filter @gorev/api dev",
+    "dev:web": "pnpm --filter @gorev/web dev",
+    "build": "pnpm --filter @gorev/api build && pnpm --filter @gorev/web build",
+    "start": "pnpm --parallel --filter @gorev/api --filter @gorev/web start",
+    "db:migrate": "pnpm --filter @gorev/api db:migrate",
+    "db:deploy": "pnpm --filter @gorev/api db:deploy",
+    "db:seed": "pnpm --filter @gorev/api db:seed",
+    "db:studio": "pnpm --filter @gorev/api db:studio",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:up": "docker compose up -d",
+    "bootstrap": "pnpm install && pnpm db:deploy && pnpm db:seed"
+  }
+}
