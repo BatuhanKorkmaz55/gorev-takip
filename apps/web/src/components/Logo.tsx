@@ -1,12 +1,12 @@
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <span className="flex size-7 items-center justify-center rounded-lg bg-accent-600 shadow-sm shadow-accent-600/30">
-        <svg viewBox="0 0 16 16" className="size-4" fill="none">
-          <path d="M3.5 8.4 6.4 11.2 12.5 4.8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <span className={`inline-flex items-center gap-3 ${className}`}>
+      <span className="flex size-9 items-center justify-center rounded-md bg-ink" aria-hidden="true">
+        <svg viewBox="0 0 20 20" className="size-5" fill="none">
+          <path d="M5 10.5l3.2 3.2L15 6.8" stroke="var(--color-signal)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
-      <span className="text-[15px] font-semibold tracking-tight text-zinc-900">Görev Takip</span>
+      <span className="text-lg font-bold text-ink">Görev Takip</span>
     </span>
   );
 }

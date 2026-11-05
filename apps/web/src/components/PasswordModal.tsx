@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api, errorMessage } from "@/lib/api";
 import { Modal } from "./Modal";
-import { Button, Field, Input } from "./ui";
+import { Button, ErrorBox, Field, Input } from "./ui";
 import { useToast } from "./Toast";
 
 export function PasswordModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -19,7 +19,7 @@ export function PasswordModal({ open, onClose }: { open: boolean; onClose: () =>
     setLoading(true);
     try {
       await api.post("/auth/password", { currentPassword, newPassword });
-      toast("Şifren güncellendi");
+      toast("Şifren değiştirildi.");
       setCurrent("");
       setNew("");
       onClose();
@@ -32,20 +32,20 @@ export function PasswordModal({ open, onClose }: { open: boolean; onClose: () =>
 
   return (
     <Modal open={open} onClose={onClose} title="Şifremi değiştir">
-      <form onSubmit={submit} className="space-y-3">
+      <form onSubmit={submit} className="space-y-4">
         <Field label="Mevcut şifre">
           <Input type="password" value={currentPassword} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" autoFocus />
         </Field>
         <Field label="Yeni şifre" hint="En az 6 karakter">
           <Input type="password" value={newPassword} onChange={(e) => setNew(e.target.value)} autoComplete="new-password" />
         </Field>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex justify-end gap-2 pt-1">
+        {error && <ErrorBox>{error}</ErrorBox>}
+        <div className="flex flex-wrap justify-end gap-3 pt-1">
           <Button type="button" onClick={onClose}>
             Vazgeç
           </Button>
           <Button type="submit" variant="primary" loading={loading}>
-            Kaydet
+            Şifreyi değiştir
           </Button>
         </div>
       </form>

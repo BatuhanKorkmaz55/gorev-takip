@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { UserLite } from "@gorev/shared";
 import { api, errorMessage } from "@/lib/api";
-import { Button, Field, Input } from "@/components/ui";
+import { Button, ErrorBox, Field, Input } from "@/components/ui";
 import { AuthCard } from "../AuthCard";
 
 export default function LoginPage() {
@@ -45,18 +45,18 @@ export default function LoginPage() {
 
   return (
     <AuthCard title="Giriş yap" subtitle="Ekibinin işlerini takip etmeye devam et.">
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="space-y-5">
         <Field label="E-posta">
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoFocus required />
         </Field>
         <Field label="Şifre">
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
         </Field>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        <Button type="submit" variant="primary" className="w-full" loading={loading}>
+        {error && <ErrorBox>{error}</ErrorBox>}
+        <Button type="submit" variant="primary" size="lg" className="w-full" loading={loading}>
           Giriş yap
         </Button>
-        <p className="text-center text-xs text-zinc-500">Hesabın yoksa ekip yöneticinden seni eklemesini iste.</p>
+        <p className="text-center text-sm text-ink-muted">Hesabın yoksa ekip yöneticinden seni eklemesini iste.</p>
       </form>
     </AuthCard>
   );

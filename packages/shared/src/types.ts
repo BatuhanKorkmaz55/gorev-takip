@@ -63,6 +63,7 @@ export interface DashboardDTO {
     myOpen: number;
     myInProgress: number;
     myOverdue: number;
+    myDueToday: number;
     myDoneThisWeek: number;
     teamOpen: number;
     teamDoneThisWeek: number;

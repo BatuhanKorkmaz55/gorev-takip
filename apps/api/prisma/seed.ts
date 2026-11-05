@@ -24,7 +24,7 @@ async function main() {
 
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const people = [
-    { name: "Muhammed Bayındır", email: "yonetici@ornek.com", role: "ADMIN" as const, title: "Proje Yöneticisi" },
+    { name: "Selin Aksoy", email: "yonetici@ornek.com", role: "ADMIN" as const, title: "Proje Yöneticisi" },
     { name: "Ayşe Yılmaz", email: "ayse@ornek.com", role: "MEMBER" as const, title: "Tasarım" },
     { name: "Mehmet Demir", email: "mehmet@ornek.com", role: "MEMBER" as const, title: "Yazılım" },
     { name: "Zeynep Kaya", email: "zeynep@ornek.com", role: "MEMBER" as const, title: "Satış" },

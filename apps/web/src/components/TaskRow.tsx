@@ -1,105 +1,108 @@
 "use client";
 
 import type { TaskDTO, TaskStatus } from "@gorev/shared";
-import { ListChecks, MessageSquare } from "lucide-react";
+import { STATUS_META } from "@gorev/shared";
 import { useUpdateTask } from "@/lib/queries";
 import { useTaskDrawer } from "@/hooks/useTaskDrawer";
+import { useSession } from "@/hooks/useSession";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./Avatar";
-import { AssigneeMenu, StatusMenu } from "./Pickers";
-import { DueBadge, PriorityIcon, StatusIcon, TagChip } from "./TaskIcons";
+import { StatusMenu } from "./Pickers";
+import { DueLabel, PriorityText, StatusPill } from "./TaskIcons";
 import { useToast } from "./Toast";
 
+/** Durum değiştir; ardından not eklemeyi öneren bildirim göster. */
 export function useStatusChange() {
   const update = useUpdateTask();
   const toast = useToast();
   const drawer = useTaskDrawer();
   return (task: TaskDTO, status: TaskStatus) => {
-    update.mutate(
-      { id: task.id, status },
-      {
-        onError: (e) => toast(e.message, { tone: "error" }),
-      },
-    );
+    update.mutate({ id: task.id, status }, { onError: (e) => toast(e.message, { tone: "error" }) });
     const msg =
-      status === "DONE" ? `#${task.number} tamamlandı 🎉` : status === "BLOCKED" ? `#${task.number} beklemeye alındı` : `#${task.number} güncellendi`;
+      status === "DONE"
+        ? `“${task.title}” tamamlandı.`
+        : `“${task.title}” artık ${STATUS_META[status].label.toLocaleLowerCase("tr-TR")}.`;
     toast(msg, { action: { label: "Not ekle", onClick: () => drawer.open(task.number) } });
   };
 }
 
-export function TaskRow({ task, showAssignee = true, compact }: { task: TaskDTO; showAssignee?: boolean; compact?: boolean }) {
+/** Bir görev satırının alt bilgisi: kişi · öncelik · etiketler · alt adımlar · ilerleme · notlar */
+function MetaLine({ task, showAssignee }: { task: TaskDTO; showAssignee: boolean }) {
+  const me = useSession();
+  const parts: React.ReactNode[] = [];
+  if (showAssignee) {
+    parts.push(
+      task.assignee ? (
+        <span key="a" className="font-semibold text-ink">
+          {task.assignee.id === me.id ? "Sen" : task.assignee.name}
+          {!task.assignee.active && <span className="font-normal text-ink-muted"> (ayrıldı)</span>}
+        </span>
+      ) : (
+        <span key="a">Kimseye verilmedi</span>
+      ),
+    );
+  }
+  if (task.priority === "URGENT" || task.priority === "HIGH") parts.push(<PriorityText key="p" priority={task.priority} />);
+  task.tags.slice(0, 3).forEach((t) => parts.push(<span key={`t${t}`}>#{t}</span>));
+  if (task.checklistTotal > 0) parts.push(<span key="c">{task.checklistDone}/{task.checklistTotal} adım</span>);
+  if (task.status === "IN_PROGRESS" && task.progress > 0) parts.push(<span key="pr">ilerleme %{task.progress}</span>);
+  if (task.commentCount > 0) parts.push(<span key="n">{task.commentCount} not</span>);
+  if (!parts.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
+      {parts.map((p, i) => (
+        <span key={i} className="inline-flex items-center gap-1.5">
+          {i > 0 && <span aria-hidden="true">·</span>}
+          {p}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function TaskRow({ task, showAssignee = true, avatar }: { task: TaskDTO; showAssignee?: boolean; avatar?: boolean }) {
   const drawer = useTaskDrawer();
-  const update = useUpdateTask();
   const changeStatus = useStatusChange();
   const closed = task.status === "DONE" || task.status === "CANCELLED";
   const isOpen = drawer.current === String(task.number);
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       onClick={() => drawer.open(task.number)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") drawer.open(task.number);
-      }}
       className={cn(
-        "group flex cursor-pointer items-center gap-3 px-3 outline-none transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50",
-        compact ? "py-2" : "py-2.5",
-        isOpen && "bg-accent-50/60 hover:bg-accent-50/60",
+        "flex min-h-16 cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 transition-colors hover:bg-paper",
+        isOpen && "bg-accent-soft hover:bg-accent-soft",
       )}
     >
-      {/* Tek tıkla tamamla; uzun menü için sağ taraftaki durum */}
-      <button
-        type="button"
-        title={closed ? "Yeniden aç" : "Tamamlandı olarak işaretle"}
-        onClick={(e) => {
-          e.stopPropagation();
-          changeStatus(task, closed ? "TODO" : "DONE");
-        }}
-        className="group/check -m-1 rounded-full p-1 hover:bg-zinc-200/60"
-      >
-        <span className="relative block">
-          <StatusIcon status={task.status} progress={task.progress} className="size-[18px] group-hover/check:opacity-0" />
-          <StatusIcon status={closed ? "TODO" : "DONE"} className="absolute inset-0 size-[18px] opacity-0 group-hover/check:opacity-100" />
-        </span>
-      </button>
+      <input
+        type="checkbox"
+        checked={task.status === "DONE"}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => changeStatus(task, e.target.checked ? "DONE" : "TODO")}
+        aria-label={task.status === "DONE" ? `“${task.title}” görevini yeniden aç` : `“${task.title}” görevini tamamlandı olarak işaretle`}
+        className="size-6 shrink-0 cursor-pointer"
+      />
+      {avatar && <Avatar user={task.assignee} size="md" />}
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="hidden shrink-0 text-xs tabular-nums text-zinc-400 sm:inline">#{task.number}</span>
-          <span className={cn("truncate text-sm", closed ? "text-zinc-400 line-through decoration-zinc-300" : "text-zinc-900")}>{task.title}</span>
-        </div>
-        {(task.tags.length > 0 || task.checklistTotal > 0 || task.commentCount > 0) && !compact && (
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {task.tags.slice(0, 3).map((t) => (
-              <TagChip key={t} tag={t} />
-            ))}
-            {task.checklistTotal > 0 && (
-              <span className={cn("inline-flex items-center gap-1 text-xs", task.checklistDone === task.checklistTotal ? "text-emerald-600" : "text-zinc-500")}>
-                <ListChecks className="size-3.5" /> {task.checklistDone}/{task.checklistTotal}
-              </span>
-            )}
-            {task.commentCount > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                <MessageSquare className="size-3.5" /> {task.commentCount}
-              </span>
-            )}
-          </div>
-        )}
+      <div className="min-w-0 flex-[1_1_220px]">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            drawer.open(task.number);
+          }}
+          className={cn(
+            "cursor-pointer text-left text-base hover:underline hover:underline-offset-2",
+            closed ? "text-ink-muted line-through" : "text-ink",
+          )}
+        >
+          {task.title}
+        </button>
+        <MetaLine task={task} showAssignee={showAssignee} />
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        {task.status === "IN_PROGRESS" && task.progress > 0 && (
-          <span className="hidden items-center gap-1.5 md:flex" title={`İlerleme %${task.progress}`}>
-            <span className="h-1.5 w-14 overflow-hidden rounded-full bg-zinc-100">
-              <span className="block h-full rounded-full bg-blue-500" style={{ width: `${task.progress}%` }} />
-            </span>
-            <span className="w-8 text-xs tabular-nums text-zinc-500">%{task.progress}</span>
-          </span>
-        )}
-        <DueBadge due={task.dueDate} status={task.status} />
-        {task.priority !== "NORMAL" && task.priority !== "LOW" && <PriorityIcon priority={task.priority} />}
-
+      <div className="ml-10 flex shrink-0 items-center gap-3 sm:ml-0">
+        <DueLabel due={task.dueDate} status={task.status} />
         <StatusMenu
           value={task.status}
           align="end"
@@ -111,33 +114,13 @@ export function TaskRow({ task, showAssignee = true, compact }: { task: TaskDTO;
                 e.stopPropagation();
                 toggle();
               }}
-              className="hidden rounded-md px-1.5 py-1 text-xs text-zinc-500 opacity-0 transition hover:bg-zinc-200/60 group-hover:opacity-100 sm:block"
+              aria-label={`Durum: ${STATUS_META[task.status].label}. Değiştirmek için seç.`}
+              className="cursor-pointer rounded-sm"
             >
-              Durum
+              <StatusPill status={task.status} chevron />
             </button>
           )}
         />
-
-        {showAssignee && (
-          <AssigneeMenu
-            value={task.assignee?.id ?? null}
-            align="end"
-            onChange={(id) => update.mutate({ id: task.id, assigneeId: id })}
-            trigger={({ toggle }) => (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggle();
-                }}
-                className="rounded-full"
-                title={task.assignee ? task.assignee.name : "Atanmamış"}
-              >
-                <Avatar user={task.assignee} size="sm" />
-              </button>
-            )}
-          />
-        )}
       </div>
     </div>
   );

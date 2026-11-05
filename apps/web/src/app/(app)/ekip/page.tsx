@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ROLE_META, type Role, type UserWithStats } from "@gorev/shared";
-import { Copy, Ellipsis, KeyRound, Pencil, RefreshCw, UserCheck, UserMinus, UserPlus, UserX } from "lucide-react";
+import { ChevronDown, Copy, KeyRound, Pencil, RefreshCw, UserCheck, UserMinus, UserPlus } from "lucide-react";
 import { useCreateUser, useRemoveUser, useUpdateUser, useUsers } from "@/lib/queries";
 import { errorMessage } from "@/lib/api";
 import { useSession } from "@/hooks/useSession";
@@ -12,7 +12,7 @@ import { Avatar } from "@/components/Avatar";
 import { Modal } from "@/components/Modal";
 import { MenuItem, Popover } from "@/components/Popover";
 import { useToast } from "@/components/Toast";
-import { Button, Field, IconButton, Input, Select, Spinner } from "@/components/ui";
+import { Button, ErrorBox, Field, Input, Select, Spinner } from "@/components/ui";
 
 type Editing = { mode: "create" } | { mode: "edit"; user: UserWithStats } | { mode: "password"; user: UserWithStats };
 
@@ -30,18 +30,18 @@ export default function TeamPage() {
   const inactive = users?.filter((u) => !u.active) ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-8">
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Ekip</h1>
-          <p className="text-sm text-zinc-500">{active.length} aktif kişi · kişiye tıklayarak işlerini gör</p>
+    <div className="mx-auto flex max-w-[1104px] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <header className="flex flex-wrap items-end gap-4">
+        <div className="min-w-0 flex-[1_1_240px]">
+          <h1 className="text-3xl font-bold text-ink">Ekip</h1>
+          <p className="text-base text-ink-muted">{active.length} kişi çalışıyor. Bir kişinin işlerini görmek için adına tıkla.</p>
         </div>
         {isAdmin && (
-          <Button variant="primary" className="ml-auto" onClick={() => setEditing({ mode: "create" })}>
-            <UserPlus className="size-4" /> Kişi ekle
+          <Button variant="primary" onClick={() => setEditing({ mode: "create" })}>
+            <UserPlus className="size-5" aria-hidden="true" /> Ekibe kişi ekle
           </Button>
         )}
-      </div>
+      </header>
 
       {isLoading ? (
         <div className="flex justify-center py-16">
@@ -49,7 +49,7 @@ export default function TeamPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {active.map((u) => (
               <MemberCard
                 key={u.id}
@@ -64,33 +64,33 @@ export default function TeamPage() {
           </div>
 
           {inactive.length > 0 && (
-            <div className="mt-8">
-              <button type="button" onClick={() => setShowInactive(!showInactive)} className="text-sm font-medium text-zinc-500 hover:text-zinc-800">
-                {showInactive ? "▾" : "▸"} Ekipten ayrılanlar ({inactive.length})
-              </button>
+            <div>
+              <Button variant="ghost" onClick={() => setShowInactive(!showInactive)} aria-expanded={showInactive}>
+                <ChevronDown className={`size-5 transition-transform ${showInactive ? "" : "-rotate-90"}`} aria-hidden="true" />
+                Ekipten ayrılanlar ({inactive.length})
+              </Button>
               {showInactive && (
-                <div className="mt-3 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
+                <div className="mt-3 divide-y divide-line rounded-lg border border-line bg-surface">
                   {inactive.map((u) => (
-                    <div key={u.id} className="flex items-center gap-3 px-4 py-3">
+                    <div key={u.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                       <Avatar user={u} size="md" />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-zinc-700">{u.name}</p>
-                        <p className="truncate text-xs text-zinc-500">{u.email}</p>
+                        <p className="truncate text-base font-semibold text-ink">{u.name}</p>
+                        <p className="truncate text-sm text-ink-muted">{u.email}</p>
                       </div>
-                      <Link href={`/gorevler?scope=all&assigneeId=${u.id}&status=all`} className="text-xs text-zinc-500 hover:text-zinc-800">
-                        Geçmiş işleri
+                      <Link href={`/gorevler?scope=all&assigneeId=${u.id}&status=all`} className="flex min-h-11 items-center text-base font-semibold text-accent hover:underline">
+                        Geçmiş işlerini gör
                       </Link>
                       {isAdmin && (
                         <Button
-                          size="sm"
                           onClick={() =>
                             update.mutate(
                               { id: u.id, active: true },
-                              { onSuccess: () => toast(`${u.name} yeniden aktif`), onError: (e) => toast(e.message, { tone: "error" }) },
+                              { onSuccess: () => toast(`${u.name} ekibe geri eklendi.`), onError: (e) => toast(e.message, { tone: "error" }) },
                             )
                           }
                         >
-                          <UserCheck className="size-4" /> Aktifleştir
+                          <UserCheck className="size-5" aria-hidden="true" /> Yeniden ekle
                         </Button>
                       )}
                     </div>
@@ -126,89 +126,85 @@ function MemberCard({
   onRemove: () => void;
 }) {
   const s = user.stats;
-  const total = s.open + s.done || 1;
   return (
-    <div className="group relative rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-zinc-300 hover:shadow-sm">
-      <Link href={`/gorevler?scope=all&assigneeId=${user.id}`} className="absolute inset-0 rounded-xl" aria-label={`${user.name} görevleri`} />
+    <article className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5 shadow-card">
       <div className="flex items-start gap-3">
         <Avatar user={user} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-900">
+          <Link href={`/gorevler?scope=all&assigneeId=${user.id}`} className="block truncate text-lg font-bold text-ink hover:underline">
             {user.name}
-            {isMe && <span className="text-xs font-normal text-zinc-400">(sen)</span>}
-          </p>
-          <p className="truncate text-xs text-zinc-500">{user.title || user.email}</p>
+            {isMe && <span className="text-base font-normal text-ink-muted"> (sen)</span>}
+          </Link>
+          <p className="truncate text-sm text-ink-muted">{user.title || user.email}</p>
           {user.role === "ADMIN" && (
-            <span className="mt-1 inline-block rounded-md bg-accent-50 px-1.5 py-0.5 text-[11px] font-medium text-accent-700">{ROLE_META.ADMIN.label}</span>
+            <span className="mt-1.5 inline-block rounded-sm bg-accent-soft px-2 py-0.5 text-sm font-semibold text-ink">{ROLE_META.ADMIN.label}</span>
           )}
         </div>
-        {isAdmin && (
-          <div className="relative z-10">
-            <Popover
-              align="end"
-              trigger={({ toggle }) => (
-                <IconButton label="İşlemler" onClick={toggle}>
-                  <Ellipsis className="size-4" />
-                </IconButton>
-              )}
-            >
-              {(close) => (
-                <>
-                  <MenuItem
-                    onClick={() => {
-                      close();
-                      onEdit();
-                    }}
-                  >
-                    <Pencil className="size-4" /> Düzenle
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      close();
-                      onPassword();
-                    }}
-                  >
-                    <KeyRound className="size-4" /> Şifre sıfırla
-                  </MenuItem>
-                  {!isMe && (
-                    <MenuItem
-                      danger
-                      onClick={() => {
-                        close();
-                        onRemove();
-                      }}
-                    >
-                      <UserMinus className="size-4" /> Ekipten çıkar
-                    </MenuItem>
-                  )}
-                </>
-              )}
-            </Popover>
-          </div>
-        )}
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-        <MiniStat label="Açık" value={s.open} />
-        <MiniStat label="Devam" value={s.inProgress} className="text-blue-600" />
-        <MiniStat label="Geciken" value={s.overdue} className={s.overdue ? "text-red-600" : undefined} />
-        <MiniStat label="Biten" value={s.done} className="text-emerald-600" />
+      <dl className="grid grid-cols-2 gap-2">
+        <MiniStat label="Açık iş" value={s.open} />
+        <MiniStat label="Devam eden" value={s.inProgress} className="text-progress-ink" />
+        <MiniStat label="Geciken" value={s.overdue} className={s.overdue ? "text-danger" : undefined} />
+        <MiniStat label="Biten" value={s.done} className="text-done-ink" />
+      </dl>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Link href={`/gorevler?scope=all&assigneeId=${user.id}`} className="flex min-h-11 flex-1 items-center text-base font-semibold text-accent hover:underline">
+          İşlerini gör
+        </Link>
+        {isAdmin && (
+          <Popover
+            align="end"
+            trigger={({ toggle }) => (
+              <Button size="sm" className="h-11" onClick={toggle}>
+                İşlemler <ChevronDown className="size-4" aria-hidden="true" />
+              </Button>
+            )}
+          >
+            {(close) => (
+              <>
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    onEdit();
+                  }}
+                >
+                  <Pencil className="size-5" aria-hidden="true" /> Bilgilerini düzenle
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    onPassword();
+                  }}
+                >
+                  <KeyRound className="size-5" aria-hidden="true" /> Şifresini sıfırla
+                </MenuItem>
+                {!isMe && (
+                  <MenuItem
+                    danger
+                    onClick={() => {
+                      close();
+                      onRemove();
+                    }}
+                  >
+                    <UserMinus className="size-5" aria-hidden="true" /> Ekipten çıkar
+                  </MenuItem>
+                )}
+              </>
+            )}
+          </Popover>
+        )}
       </div>
-      <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-zinc-100" title="İş dağılımı">
-        <span className="bg-blue-500" style={{ width: `${(s.inProgress / total) * 100}%` }} />
-        <span className="bg-amber-400" style={{ width: `${(s.blocked / total) * 100}%` }} />
-        <span className="bg-zinc-300" style={{ width: `${((s.open - s.inProgress - s.blocked) / total) * 100}%` }} />
-        <span className="bg-emerald-500" style={{ width: `${(s.done / total) * 100}%` }} />
-      </div>
-    </div>
+    </article>
   );
 }
 
 function MiniStat({ label, value, className }: { label: string; value: number; className?: string }) {
   return (
-    <div>
-      <p className={cn("text-lg font-semibold tabular-nums text-zinc-900", className)}>{value}</p>
-      <p className="text-[11px] text-zinc-500">{label}</p>
+    <div className="rounded-md bg-paper px-3 py-2">
+      <dt className="text-sm text-ink-muted">{label}</dt>
+      <dd className={cn("text-xl font-bold text-ink tabular-nums", className)}>{value}</dd>
     </div>
   );
 }
@@ -218,20 +214,20 @@ function CredentialBox({ email, password }: { email: string; password: string })
   const text = `Görev Takip giriş bilgilerin:\nAdres: ${typeof window !== "undefined" ? location.origin : ""}\nE-posta: ${email}\nŞifre: ${password}`;
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        <p className="font-medium">Hazır! Bu bilgileri kişiyle paylaş:</p>
-        <pre className="mt-2 whitespace-pre-wrap font-mono text-xs leading-relaxed">{text}</pre>
+      <div className="rounded-md bg-done p-4 text-base text-done-ink">
+        <p className="font-semibold">Hazır. Bu bilgileri kişiyle paylaş:</p>
+        <pre className="mt-2 font-sans text-base whitespace-pre-wrap text-ink">{text}</pre>
       </div>
       <Button
         className="w-full"
         onClick={() => {
           void navigator.clipboard?.writeText(text);
-          toast("Giriş bilgileri kopyalandı");
+          toast("Giriş bilgileri kopyalandı.");
         }}
       >
-        <Copy className="size-4" /> Kopyala
+        <Copy className="size-5" aria-hidden="true" /> Bilgileri kopyala
       </Button>
-      <p className="text-xs text-zinc-500">Kişi giriş yaptıktan sonra menüden kendi şifresini değiştirebilir.</p>
+      <p className="text-sm text-ink-muted">Kişi giriş yaptıktan sonra menüden kendi şifresini değiştirebilir.</p>
     </div>
   );
 }
@@ -254,7 +250,7 @@ function UserFormModal({ user, onClose }: { user?: UserWithStats; onClose: () =>
     try {
       if (user) {
         await update.mutateAsync({ id: user.id, name, email, title: title || null, role });
-        toast("Bilgiler güncellendi");
+        toast("Bilgiler kaydedildi.");
         onClose();
       } else {
         await create.mutateAsync({ name, email, title: title || null, role, password });
@@ -270,14 +266,14 @@ function UserFormModal({ user, onClose }: { user?: UserWithStats; onClose: () =>
       {created ? (
         <CredentialBox {...created} />
       ) : (
-        <form onSubmit={submit} className="space-y-3">
+        <form onSubmit={submit} className="space-y-4">
           <Field label="Ad soyad">
             <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required />
           </Field>
           <Field label="E-posta">
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Unvan / Birim" hint="İsteğe bağlı">
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="örn. Muhasebe" />
             </Field>
@@ -291,23 +287,23 @@ function UserFormModal({ user, onClose }: { user?: UserWithStats; onClose: () =>
           {!user && (
             <Field label="Geçici şifre" hint="Otomatik oluşturuldu; istersen değiştir.">
               <div className="flex gap-2">
-                <Input value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono" required minLength={6} />
-                <IconButton label="Yeni şifre üret" onClick={() => setPassword(randomPassword())} className="size-9 border border-zinc-200">
-                  <RefreshCw className="size-4" />
-                </IconButton>
+                <Input value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                <Button onClick={() => setPassword(randomPassword())}>
+                  <RefreshCw className="size-5" aria-hidden="true" /> Yenile
+                </Button>
               </div>
             </Field>
           )}
-          <p className="text-xs text-zinc-500">
-            <b>Üye</b> görev ekler, atar ve günceller. <b>Yönetici</b> ayrıca ekibe kişi ekleyip çıkarabilir.
+          <p className="text-sm text-ink-muted">
+            <b className="text-ink">Üye</b> görev ekler, verir ve günceller. <b className="text-ink">Yönetici</b> ayrıca ekibe kişi ekleyip çıkarabilir.
           </p>
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <div className="flex justify-end gap-2 pt-1">
+          {error && <ErrorBox>{error}</ErrorBox>}
+          <div className="flex flex-wrap justify-end gap-3 pt-1">
             <Button type="button" onClick={onClose}>
               Vazgeç
             </Button>
             <Button type="submit" variant="primary" loading={create.isPending || update.isPending}>
-              {user ? "Kaydet" : "Ekle"}
+              {user ? "Değişiklikleri kaydet" : "Kişiyi ekle"}
             </Button>
           </div>
         </form>
@@ -322,12 +318,12 @@ function ResetPasswordModal({ user, onClose }: { user: UserWithStats; onClose: (
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <Modal open onClose={onClose} title={`${user.name} · şifre sıfırla`}>
+    <Modal open onClose={onClose} title={`${user.name}: şifre sıfırla`}>
       {done ? (
         <CredentialBox email={user.email} password={password} />
       ) : (
         <form
-          className="space-y-3"
+          className="space-y-4"
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
@@ -341,14 +337,14 @@ function ResetPasswordModal({ user, onClose }: { user: UserWithStats; onClose: (
         >
           <Field label="Yeni şifre">
             <div className="flex gap-2">
-              <Input value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono" minLength={6} required />
-              <IconButton label="Yeni şifre üret" onClick={() => setPassword(randomPassword())} className="size-9 border border-zinc-200">
-                <RefreshCw className="size-4" />
-              </IconButton>
+              <Input value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+              <Button onClick={() => setPassword(randomPassword())}>
+                <RefreshCw className="size-5" aria-hidden="true" /> Yenile
+              </Button>
             </div>
           </Field>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-2">
+          {error && <ErrorBox>{error}</ErrorBox>}
+          <div className="flex flex-wrap justify-end gap-3">
             <Button type="button" onClick={onClose}>
               Vazgeç
             </Button>
@@ -380,7 +376,7 @@ function RemoveModal({ user, onClose }: { user: UserWithStats; onClose: () => vo
               try {
                 const r = await remove.mutateAsync(user.id);
                 toast(
-                  `${user.name} ekipten çıkarıldı` + (r.unassigned ? ` · ${r.unassigned} açık görevin ataması kaldırıldı` : ""),
+                  `${user.name} ekipten çıkarıldı.` + (r.unassigned ? ` ${r.unassigned} açık görevi artık kimsede değil.` : ""),
                 );
                 onClose();
               } catch (e) {
@@ -388,21 +384,21 @@ function RemoveModal({ user, onClose }: { user: UserWithStats; onClose: () => vo
               }
             }}
           >
-            <UserX className="size-4" /> Ekipten çıkar
+            Evet, ekipten çıkar
           </Button>
         </>
       }
     >
-      <div className="space-y-2 text-sm text-zinc-600">
+      <div className="space-y-3 text-base text-ink">
         <p>
           <b>{user.name}</b> artık giriş yapamayacak ve görev atanacaklar listesinde görünmeyecek.
         </p>
         {user.stats.open > 0 && (
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
-            Üzerindeki <b>{user.stats.open} açık görevin</b> ataması kaldırılacak; bu görevleri başkasına atayabilirsin.
+          <p className="rounded-md bg-blocked px-3.5 py-2.5 text-blocked-ink">
+            Üzerindeki <b>{user.stats.open} açık görev</b> kimseye verilmemiş olarak kalacak; bunları başkasına verebilirsin.
           </p>
         )}
-        <p className="text-xs text-zinc-500">Geçmiş kayıtlar korunur. İstersen daha sonra yeniden aktifleştirebilirsin.</p>
+        <p className="text-sm text-ink-muted">Geçmiş kayıtlar korunur. İstersen daha sonra ekibe geri ekleyebilirsin.</p>
       </div>
     </Modal>
   );

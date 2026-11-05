@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { CircleCheck, TriangleAlert, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface ToastItem {
   id: number;
@@ -24,8 +23,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback<ToastFn>(
     (message, opts) => {
       const id = nextId++;
-      setItems((s) => [...s.slice(-3), { id, message, tone: opts?.tone ?? "success", action: opts?.action }]);
-      setTimeout(() => dismiss(id), opts?.duration ?? (opts?.action ? 6000 : 3500));
+      setItems((s) => [...s.slice(-2), { id, message, tone: opts?.tone ?? "success", action: opts?.action }]);
+      setTimeout(() => dismiss(id), opts?.duration ?? (opts?.action ? 8000 : 4000));
     },
     [dismiss],
   );
@@ -33,21 +32,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={toast}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[70] flex flex-col items-center gap-2 px-4 md:bottom-6">
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex flex-col items-center gap-2 px-4 md:bottom-6">
         {items.map((t) => (
           <div
             key={t.id}
-            className="animate-pop-in pointer-events-auto flex max-w-md items-center gap-3 rounded-xl bg-zinc-900 py-2.5 pl-3.5 pr-2 text-sm text-white shadow-xl"
+            className="animate-pop-in pointer-events-auto flex w-full max-w-lg items-center gap-3 rounded-lg bg-ink py-2 pr-2 pl-4 text-base text-white shadow-pop"
           >
             {t.tone === "success" ? (
-              <CircleCheck className="size-4 shrink-0 text-emerald-400" />
+              <CircleCheck className="size-5 shrink-0 text-signal" aria-hidden="true" />
             ) : (
-              <TriangleAlert className="size-4 shrink-0 text-red-400" />
+              <TriangleAlert className="size-5 shrink-0 text-signal" aria-hidden="true" />
             )}
-            <span className="min-w-0 flex-1">{t.message}</span>
+            <span className="min-w-0 flex-1 py-1.5">{t.message}</span>
             {t.action && (
               <button
-                className="rounded-md px-2 py-1 text-[13px] font-semibold text-accent-100 hover:bg-white/10"
+                type="button"
+                className="h-10 shrink-0 cursor-pointer rounded-md bg-white px-3 text-[15px] font-semibold text-ink hover:bg-white/90"
                 onClick={() => {
                   t.action?.onClick();
                   dismiss(t.id);
@@ -56,8 +56,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 {t.action.label}
               </button>
             )}
-            <button className={cn("rounded-md p-1 text-zinc-400 hover:bg-white/10 hover:text-white")} onClick={() => dismiss(t.id)} aria-label="Kapat">
-              <X className="size-3.5" />
+            <button
+              type="button"
+              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/80 hover:bg-white/10 hover:text-white"
+              onClick={() => dismiss(t.id)}
+              aria-label="Bildirimi kapat"
+            >
+              <X className="size-5" />
             </button>
           </div>
         ))}

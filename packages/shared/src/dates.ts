@@ -50,3 +50,30 @@ export function formatDateKey(dueKey: string): string {
   const [y, m, d] = dueKey.split("-").map(Number);
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
+
+export type DueTone = "overdue" | "today" | "tomorrow" | "soon" | "later";
+
+/**
+ * Kelimeyle bitiş tarihi: "3 gün gecikti", "Bugün", "Yarın", "Cuma, 7 Kas", "14 Kas", "3 Oca 2027".
+ * Okunurluk için sayıyla tarih (07.11) hiçbir zaman tek başına kullanılmaz.
+ */
+export function dueLabel(dueKey: string, todayKey: string): { text: string; tone: DueTone } {
+  const diff = diffDays(todayKey, dueKey);
+  if (diff < 0) return { text: `${-diff} gün gecikti`, tone: "overdue" };
+  if (diff === 0) return { text: "Bugün", tone: "today" };
+  if (diff === 1) return { text: "Yarın", tone: "tomorrow" };
+  const [y, m, d] = dueKey.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const [ty] = todayKey.split("-").map(Number);
+  if (diff < 7) return { text: `${WEEKDAYS[dt.getUTCDay()]}, ${d} ${MONTHS[m - 1]}`, tone: "soon" };
+  return { text: `${d} ${MONTHS[m - 1]}${y !== ty ? ` ${y}` : ""}`, tone: "later" };
+}
+
+/** "Perşembe, 5 Kasım" */
+export function longDate(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return `${WEEKDAYS[dt.getUTCDay()]}, ${d} ${MONTHS_LONG[m - 1]}`;
+}
+
+const MONTHS_LONG = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];

@@ -1,21 +1,23 @@
 "use client";
 
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
-type Size = "sm" | "md";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "link";
+type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent-600 text-white hover:bg-accent-700 shadow-sm disabled:bg-accent-600/60",
-  secondary: "bg-white text-zinc-800 border border-zinc-200 hover:bg-zinc-50 shadow-xs",
-  ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
-  danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
+  primary: "bg-ink text-on-ink hover:bg-ink/85",
+  secondary: "bg-surface text-ink border border-line-strong hover:bg-paper",
+  ghost: "text-ink hover:bg-sunken",
+  danger: "bg-danger text-white hover:bg-danger/90",
+  link: "text-accent hover:text-accent-strong hover:underline underline-offset-2 px-0!",
 };
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-2.5 text-[13px] gap-1.5",
-  md: "h-9 px-3.5 text-sm gap-2",
+  sm: "h-9 px-3 text-[15px] gap-1.5",
+  md: "h-11 px-4 text-base gap-2",
+  lg: "h-14 px-6 text-base gap-2",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -24,28 +26,31 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
+/** Tüm butonlar en az 44px (md); metin fiille başlar: "Görevi ekle", "Notu kaydet". */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "secondary", size = "md", loading, className, children, disabled, ...rest },
+  { variant = "secondary", size = "md", loading, className, children, disabled, type = "button", ...rest },
   ref,
 ) {
   return (
     <button
       ref={ref}
+      type={type}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/40 disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-55",
         variants[variant],
         sizes[size],
         className,
       )}
       {...rest}
     >
-      {loading && <LoaderCircle className="size-4 animate-spin" />}
+      {loading && <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />}
       {children}
     </button>
   );
 });
 
+/** Yalnızca simgeli buton: yalnızca kapat ve "diğer" gibi evrensel işlemler için. */
 export const IconButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { label: string }>(
   function IconButton({ label, className, children, ...rest }, ref) {
     return (
@@ -55,7 +60,7 @@ export const IconButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTM
         aria-label={label}
         title={label}
         className={cn(
-          "inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/40",
+          "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink transition-colors hover:bg-sunken",
           className,
         )}
         {...rest}
@@ -66,50 +71,28 @@ export const IconButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTM
   },
 );
 
+const fieldBase =
+  "w-full rounded-md border border-line-strong bg-surface text-base text-ink placeholder:text-ink-muted transition-shadow outline-none focus:border-accent focus:ring-3 focus:ring-accent/20";
+
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
   { className, ...rest },
   ref,
 ) {
-  return (
-    <input
-      ref={ref}
-      className={cn(
-        "h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs outline-none transition focus:border-accent-500 focus:ring-3 focus:ring-accent-500/15",
-        className,
-      )}
-      {...rest}
-    />
-  );
+  return <input ref={ref} className={cn(fieldBase, "h-11 px-3.5", className)} {...rest} />;
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
   function Textarea({ className, ...rest }, ref) {
-    return (
-      <textarea
-        ref={ref}
-        className={cn(
-          "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-xs outline-none transition focus:border-accent-500 focus:ring-3 focus:ring-accent-500/15",
-          className,
-        )}
-        {...rest}
-      />
-    );
+    return <textarea ref={ref} className={cn(fieldBase, "px-3.5 py-3 leading-6", className)} {...rest} />;
   },
 );
 
-export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select(
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select(
   { className, children, ...rest },
   ref,
 ) {
   return (
-    <select
-      ref={ref}
-      className={cn(
-        "h-9 rounded-lg border border-zinc-200 bg-white pl-3 pr-8 text-sm text-zinc-900 shadow-xs outline-none transition focus:border-accent-500 focus:ring-3 focus:ring-accent-500/15",
-        className,
-      )}
-      {...rest}
-    >
+    <select ref={ref} className={cn(fieldBase, "h-11 w-auto cursor-pointer pl-3 pr-9 text-[15px]", className)} {...rest}>
       {children}
     </select>
   );
@@ -118,20 +101,24 @@ export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<H
 export function Field({ label, hint, error, children }: { label: string; hint?: ReactNode; error?: string; children: ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-[13px] font-medium text-zinc-700">{label}</span>
+      <span className="block text-[15px] font-semibold text-ink">{label}</span>
       {children}
-      {error ? <span className="block text-xs text-red-600">{error}</span> : hint ? <span className="block text-xs text-zinc-500">{hint}</span> : null}
+      {error ? (
+        <span className="block text-sm text-danger">{error}</span>
+      ) : hint ? (
+        <span className="block text-sm text-ink-muted">{hint}</span>
+      ) : null}
     </label>
   );
 }
 
-export function Spinner({ className }: { className?: string }) {
-  return <LoaderCircle className={cn("size-5 animate-spin text-zinc-400", className)} />;
+export function Spinner({ className, label = "Yükleniyor" }: { className?: string; label?: string }) {
+  return <LoaderCircle className={cn("size-6 animate-spin text-ink-muted", className)} aria-label={label} />;
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-zinc-200 bg-zinc-50 px-1 font-sans text-[11px] font-medium text-zinc-500">
+    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-sm border border-line-strong bg-surface px-1.5 font-sans text-sm font-semibold text-ink">
       {children}
     </kbd>
   );
@@ -140,13 +127,25 @@ export function Kbd({ children }: { children: ReactNode }) {
 export function EmptyState({ icon, title, children }: { icon?: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-      {icon && <div className="mb-1 text-zinc-300">{icon}</div>}
-      <p className="text-sm font-medium text-zinc-700">{title}</p>
-      {children && <div className="max-w-sm text-sm text-zinc-500">{children}</div>}
+      {icon && <div className="mb-1 text-ink-muted" aria-hidden="true">{icon}</div>}
+      <p className="text-lg font-bold text-ink">{title}</p>
+      {children && <div className="max-w-md text-base text-ink-muted">{children}</div>}
     </div>
   );
 }
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("rounded-xl border border-zinc-200/80 bg-white shadow-xs", className)}>{children}</div>;
+export function Card({ className, children, ...rest }: { className?: string; children: ReactNode } & React.HTMLAttributes<HTMLElement>) {
+  return (
+    <section className={cn("rounded-lg border border-line bg-surface shadow-card", className)} {...rest}>
+      {children}
+    </section>
+  );
+}
+
+export function ErrorBox({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="rounded-md bg-danger-soft px-3.5 py-2.5 text-base text-danger">
+      {children}
+    </p>
+  );
 }

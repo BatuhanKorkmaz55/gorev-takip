@@ -22,7 +22,11 @@ export function timeAgo(iso: string): string {
   if (abs < 45) return "az önce";
   if (abs < 3600) return rtf.format(Math.round(diff / 60), "minute");
   if (abs < 86400) return rtf.format(Math.round(diff / 3600), "hour");
-  if (abs < 86400 * 7) return rtf.format(Math.round(diff / 86400), "day");
+  if (abs < 86400 * 7) {
+    const days = Math.round(abs / 86400);
+    if (diff < 0) return days === 1 ? "dün" : `${days} gün önce`;
+    return days === 1 ? "yarın" : `${days} gün sonra`;
+  }
   return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" });
 }
 

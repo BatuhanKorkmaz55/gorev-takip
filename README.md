@@ -1,6 +1,8 @@
 # Görev Takip
 
-Ekip için **basit ve hızlı** iş takibi. Görevini tek satırda yaz, Enter'a bas; kime, ne zaman, ne kadar acil olduğunu aynı satırda belirt. Her durum değişikliği ve not, görevin geçmişine otomatik düşer.
+Ekip için **basit, okunur ve hızlı** iş takibi. Görevini tek satırda yaz, "Görevi ekle"ye bas; kime, ne zaman, ne kadar acil olduğunu hemen altındaki açık başlıklı seçicilerle (ya da kısayollarla) belirt. Her durum değişikliği ve not, görevin geçmişine otomatik düşer.
+
+Arayüz okunurluk için tasarlandı: Atkinson Hyperlegible Next yazı tipi, 16px gövde metni, hiçbir metin 14px altında değil, tüm metinlerde en az 4.5:1 kontrast, tüm düğmeler en az 44px. Her durum renkle değil **kelimeyle** yazılır, tarihler "Bugün", "Yarın", "2 gün gecikti" diye okunur. Tasarım kuralları: [docs/TASARIM.md](docs/TASARIM.md).
 
 **Monorepo:** Next.js 16 (web) · Node.js + Express 5 (API) · PostgreSQL + Prisma · pnpm workspaces
 
@@ -9,26 +11,28 @@ apps/
   api/        Express API, Prisma şeması, migration'lar, demo verisi
   web/        Next.js arayüzü (App Router, Tailwind 4, TanStack Query)
 packages/
-  shared/     Ortak tipler, doğrulama şemaları (zod), hızlı giriş ayrıştırıcısı
+  shared/     Ortak tipler, doğrulama şemaları (zod), hızlı giriş ayrıştırıcısı, tarih metinleri
+docs/
+  TASARIM.md  Tasarım sistemi: ilkeler, renkler, yazı ölçeği, bileşen kuralları
 ```
 
 ## Özellikler
 
-- **Tek satırda görev:** `Teklifi hazırla @ayşe yarın !acil #satış`
-  - `@isim` kişiye ata (`@ben`, `@kimse`) — yazarken kişi önerisi çıkar
+- **Tek satırda görev:** kutuya ne yapılacağını yaz, altındaki **Kime / Ne zaman / Öncelik / Etiket** seçicileriyle ayrıntıyı belirle. Kısayolları bilenler doğrudan yazabilir: `Teklifi hazırla @ayşe yarın !acil #satış`
+  - `@isim` kişiye ver (`@ben`, `@kimse`) — yazarken kişi önerisi çıkar
   - `bugün`, `yarın`, `cuma`, `haftaya`, `20.11`, `+3` → bitiş tarihi
   - `!acil` `!yüksek` `!düşük` (ya da `!!!` / `!!`) → öncelik
   - `#etiket` → etiket (mevcut etiketler önerilir)
-  - Kişi yazmazsan görev sana atanır. Sözdizimini bilmeyenler için kutunun altında tıklanabilir **Kişi / Tarih / Öncelik / Etiket** düğmeleri var.
-- **Durumlar:** Yapılacak · Devam ediyor · Beklemede · Tamamlandı · İptal. Listede yuvarlağa tek tıkla tamamla.
-- **Güncelleme notu:** Görevi açıp "Ne yaptın?" kutusuna yaz, istersen aynı anda durumu da değiştir. Not, durum değişikliğinin açıklaması olarak geçmişe düşer.
+  - Kişi seçmezsen görev sana verilir.
+- **Durumlar:** Yapılacak · Devam ediyor · Beklemede · Tamamlandı · İptal. Satırdaki onay kutusu görevi tamamlar; sağdaki durum düğmesi her zaman görünür.
+- **Güncelleme notu:** Görevi açınca en üstte "Ne yaptın? Kısa bir not bırak" kutusu var; istersen aynı anda durumu da değiştir. Not, durum değişikliğinin açıklaması olarak geçmişe düşer.
 - **Otomatik geçmiş:** Atama, öncelik, tarih, ilerleme, başlık, etiket, alt adım değişiklikleri kim/ne zaman bilgisiyle kaydedilir.
 - **Alt adımlar (kontrol listesi), ilerleme yüzdesi, açıklama, etiketler.**
-- **Panom:** açık/devam eden/geciken/bu hafta bitirdiğim sayıları, tarihe göre gruplanmış işlerim, başkalarına atadığım işler, ekipteki son hareketler.
-- **Görevler:** Bana atanan / Atadıklarım / Oluşturduklarım / Tümü; arama, durum-kişi-öncelik-tarih filtreleri; duruma, kişiye, tarihe veya önceliğe göre gruplama. Filtreler adres çubuğunda tutulur, bağlantıyla paylaşılabilir.
+- **Özet:** geciken, bugün teslim, devam eden ve bu hafta biten sayıları; tarihe göre gruplanmış görevlerim; başkasına verdiğim görevler; ekipteki son hareketler.
+- **Görevler:** Bana verilen / Benim verdiğim / Benim oluşturduğum / Herkesin; arama, durum-kişi-öncelik-tarih filtreleri; duruma, kişiye, tarihe veya önceliğe göre gruplama. Filtreler adres çubuğunda tutulur, bağlantıyla paylaşılabilir. Mobilde filtreler bir düğmenin arkasındadır.
 - **Pano (Kanban):** kartları sürükleyip bırakarak durum değiştir.
 - **Ekip:** her kişinin iş yükü (açık, devam, geciken, biten). Yönetici kişi ekler (geçici şifre otomatik üretilir ve paylaşmak için kopyalanır), düzenler, şifre sıfırlar, ekipten çıkarır. Çıkarılan kişinin açık görevlerinin ataması kaldırılır, geçmişi korunur; istenirse yeniden aktifleştirilir.
-- **Kısayollar:** `N` yeni görev, `Esc` paneli kapat, `⌘/Ctrl + Enter` notu gönder.
+- **Kısayollar:** `N` yeni görev, `Esc` paneli kapat, `⌘/Ctrl + Enter` notu kaydet.
 - **Yetkiler:** Herkes görev ekler, atar, günceller. Görevi yalnızca oluşturan veya yönetici siler. Ekip yönetimi yalnızca yöneticide.
 - Mobil uyumlu (alt gezinme çubuğu). Veriler 20 saniyede bir ve sekmeye dönünce tazelenir.
 
@@ -56,9 +60,9 @@ Tarayıcıda http://localhost:3000 açın.
 - **Demo verisiyle:** `pnpm db:seed` örnek bir ekip ve görevler oluşturur. Demo hesapları ve şifresi `apps/api/prisma/seed.ts` dosyasının başında yazılı. ⚠️ Seed mevcut tüm verileri siler.
 - **Boş veritabanıyla:** Hiç kullanıcı yoksa giriş sayfası sizi **İlk kurulum** ekranına yönlendirir; orada yönetici hesabını oluşturup ekibi eklersiniz.
 
-### Bu makinede (Homebrew PostgreSQL)
+### macOS'ta Homebrew PostgreSQL ile
 
-Geliştirme sırasında Homebrew'in PostgreSQL 17'si 5434 portunda çalıştırıldı (makinedeki diğer PostgreSQL kurulumlarıyla çakışmasın diye). Bilgisayar yeniden başladıktan sonra tekrar başlatmak için:
+Docker kullanmıyorsan Homebrew'in PostgreSQL'ini ayrı bir portta (5434) çalıştırabilirsin; `.env.example` bu portu bekler:
 
 ```bash
 LC_ALL=en_US.UTF-8 /opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/postgresql@17 -o "-p 5434" -l /opt/homebrew/var/log/postgresql@17.log start

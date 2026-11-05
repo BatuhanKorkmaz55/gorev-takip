@@ -1,54 +1,62 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { PRIORITY_META, formatDateKey, type ActivityDTO, type Priority, type TaskStatus } from "@gorev/shared";
-import { Trash2 } from "lucide-react";
+import { PRIORITY_META, STATUS_META, formatDateKey, type ActivityDTO, type Priority, type TaskStatus } from "@gorev/shared";
 import { useTaskDrawer } from "@/hooks/useTaskDrawer";
 import { useSession } from "@/hooks/useSession";
 import { useDeleteActivity } from "@/lib/queries";
 import { cn, fullDateTime, timeAgo } from "@/lib/utils";
 import { Avatar } from "./Avatar";
-import { PriorityIcon, StatusIcon, StatusPill } from "./TaskIcons";
 
-const B = ({ children }: { children: ReactNode }) => <span className="font-medium text-zinc-800">{children}</span>;
+const B = ({ children, className }: { children: ReactNode; className?: string }) => <b className={cn("font-semibold text-ink", className)}>{children}</b>;
 
-function describe(a: ActivityDTO): ReactNode {
+const STATUS_TEXT: Record<TaskStatus, string> = {
+  TODO: "text-todo-ink",
+  IN_PROGRESS: "text-progress-ink",
+  BLOCKED: "text-blocked-ink",
+  DONE: "text-done-ink",
+  CANCELLED: "text-cancel-ink",
+};
+
+function describe(a: ActivityDTO, meId: string): ReactNode {
   const m = (a.meta ?? {}) as Record<string, unknown>;
   switch (a.type) {
     case "CREATED":
       return m.assigneeName && m.assigneeId !== a.user.id ? (
         <>
-          görevi oluşturdu ve <B>{String(m.assigneeName)}</B> kişisine atadı
+          görevi oluşturdu ve <B>{m.assigneeId === meId ? "sana" : String(m.assigneeName)}</B> verdi
         </>
       ) : (
         <>görevi oluşturdu</>
       );
     case "COMMENT":
       return <>not ekledi</>;
-    case "STATUS":
+    case "STATUS": {
+      const to = m.to as TaskStatus;
       return (
-        <span className="inline-flex flex-wrap items-center gap-1">
-          durumu <StatusPill status={m.to as TaskStatus} /> yaptı
-        </span>
+        <>
+          durumu <B className={STATUS_TEXT[to]}>{STATUS_META[to]?.label}</B> yaptı
+        </>
       );
+    }
     case "ASSIGNEE":
       return m.toName ? (
         <>
-          görevi <B>{String(m.toName)}</B> kişisine atadı
+          görevi <B>{m.toId === meId ? "sana" : String(m.toName)}</B> verdi
         </>
       ) : (
-        <>atamayı kaldırdı</>
+        <>görevin sorumlusunu kaldırdı</>
       );
     case "PRIORITY":
       return (
-        <span className="inline-flex items-center gap-1">
-          önceliği <PriorityIcon priority={m.to as Priority} className="size-3.5" /> <B>{PRIORITY_META[m.to as Priority]?.label}</B> yaptı
-        </span>
+        <>
+          önceliği <B>{PRIORITY_META[m.to as Priority]?.label}</B> yaptı
+        </>
       );
     case "DUE_DATE":
       return m.to ? (
         <>
-          bitiş tarihini <B>{formatDateKey(String(m.to))}</B> olarak ayarladı
+          bitiş tarihini <B>{formatDateKey(String(m.to))}</B> yaptı
         </>
       ) : (
         <>bitiş tarihini kaldırdı</>
@@ -56,7 +64,7 @@ function describe(a: ActivityDTO): ReactNode {
     case "PROGRESS":
       return (
         <>
-          ilerlemeyi <B>%{String(m.to)}</B> olarak güncelledi
+          ilerlemeyi <B>%{String(m.to)}</B> yaptı
         </>
       );
     case "TITLE":
@@ -82,54 +90,47 @@ function describe(a: ActivityDTO): ReactNode {
   }
 }
 
-/** Görev zaman akışındaki tek satır */
-export function ActivityItem({ a, showTask }: { a: ActivityDTO; showTask?: boolean }) {
+/** Geçmişteki bir kayıt: kim, ne yaptı, ne zaman; varsa notu. */
+export function ActivityItem({ a, showTask, noteBg = "bg-paper" }: { a: ActivityDTO; showTask?: boolean; noteBg?: string }) {
   const drawer = useTaskDrawer();
   const me = useSession();
   const del = useDeleteActivity();
   const canDelete = a.type === "COMMENT" && (a.user.id === me.id || me.role === "ADMIN");
-  const emphasize = a.type === "COMMENT" || !!a.message;
 
   return (
-    <div className="group relative flex gap-3">
-      <Avatar user={a.user} size={emphasize ? "md" : "sm"} className={cn(!emphasize && "mx-1")} />
-      <div className="min-w-0 flex-1 pt-0.5">
-        <div className="text-[13px] leading-6 text-zinc-500">
-          <B>{a.user.name}</B> {describe(a)}{" "}
-          {showTask && a.task && (
+    <article className="flex gap-3">
+      <Avatar user={a.user} size="md" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <p className="text-base text-ink">
+          <B>{a.user.id === me.id ? "Sen" : a.user.name}</B> {describe(a, me.id)}
+        </p>
+        {showTask && a.task && (
+          <button
+            type="button"
+            onClick={() => drawer.open(a.task!.number)}
+            className="cursor-pointer self-start text-left text-sm font-semibold text-accent hover:text-accent-strong hover:underline"
+          >
+            {a.task.title}
+          </button>
+        )}
+        {a.message && <p className={cn("rounded-md px-3 py-2.5 text-base whitespace-pre-wrap break-words text-ink", noteBg)}>{a.message}</p>}
+        <div className="flex items-center gap-3 text-sm text-ink-muted">
+          <time dateTime={a.createdAt} title={fullDateTime(a.createdAt)}>
+            {timeAgo(a.createdAt)}
+          </time>
+          {canDelete && (
             <button
               type="button"
-              onClick={() => drawer.open(a.task!.number)}
-              className="inline-flex max-w-full items-center gap-1 rounded-md px-1 text-left align-middle font-medium text-zinc-800 hover:bg-zinc-100"
+              onClick={() => {
+                if (confirm("Bu not silinsin mi?")) del.mutate(a.id);
+              }}
+              className="cursor-pointer font-semibold text-danger hover:underline"
             >
-              <StatusIcon status={a.task.status} className="size-3.5" />
-              <span className="truncate">
-                #{a.task.number} {a.task.title}
-              </span>
+              Notu sil
             </button>
           )}
-          <span className="whitespace-nowrap text-xs text-zinc-400" title={fullDateTime(a.createdAt)}>
-            · {timeAgo(a.createdAt)}
-          </span>
         </div>
-        {a.message && (
-          <div className="mt-1 whitespace-pre-wrap break-words rounded-lg rounded-tl-sm border border-zinc-200/70 bg-white px-3 py-2 text-sm text-zinc-800 shadow-xs">
-            {a.message}
-          </div>
-        )}
       </div>
-      {canDelete && (
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Bu not silinsin mi?")) del.mutate(a.id);
-          }}
-          className="absolute right-0 top-0 rounded-md p-1 text-zinc-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-          title="Notu sil"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      )}
-    </div>
+    </article>
   );
 }

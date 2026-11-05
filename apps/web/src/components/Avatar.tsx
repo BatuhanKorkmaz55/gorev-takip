@@ -2,11 +2,12 @@ import type { UserLite } from "@gorev/shared";
 import { UserRound } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 
-const sizes = { xs: "size-5 text-[9px]", sm: "size-6 text-[10px]", md: "size-8 text-xs", lg: "size-11 text-sm" };
+const sizes = { sm: "size-7 text-[12px]", md: "size-9 text-sm", lg: "size-12 text-base" };
 
+/** Kişi rozeti süsleyicidir: adın kendisi her zaman yanında yazılır. */
 export function Avatar({
   user,
-  size = "sm",
+  size = "md",
   className,
 }: {
   user: Pick<UserLite, "name" | "color" | "active"> | null | undefined;
@@ -16,9 +17,9 @@ export function Avatar({
   if (!user) {
     return (
       <span
-        title="Atanmamış"
+        aria-hidden="true"
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-300 text-zinc-400",
+          "inline-flex shrink-0 items-center justify-center rounded-full border border-dashed border-line-strong text-ink-muted",
           sizes[size],
           className,
         )}
@@ -29,10 +30,10 @@ export function Avatar({
   }
   return (
     <span
-      title={user.name + (user.active ? "" : " (ekipten ayrıldı)")}
+      aria-hidden="true"
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold text-white ring-2 ring-white",
-        !user.active && "opacity-50 grayscale",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold text-white",
+        !user.active && "opacity-60 grayscale",
         sizes[size],
         className,
       )}

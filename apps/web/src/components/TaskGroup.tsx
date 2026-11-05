@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { TaskGroupData } from "@/lib/grouping";
 import { cn } from "@/lib/utils";
-import { Avatar } from "./Avatar";
-import { PriorityIcon, StatusIcon } from "./TaskIcons";
 import { TaskRow } from "./TaskRow";
 
 export function TaskGroup({
@@ -13,12 +11,14 @@ export function TaskGroup({
   showHeader = true,
   defaultCollapsed = false,
   showAssignee = true,
+  avatar,
   limit,
 }: {
   group: TaskGroupData;
   showHeader?: boolean;
   defaultCollapsed?: boolean;
   showAssignee?: boolean;
+  avatar?: boolean;
   limit?: number;
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -30,30 +30,32 @@ export function TaskGroup({
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="sticky top-14 z-10 flex w-full items-center gap-2 border-b border-zinc-100 bg-zinc-50/95 px-3 py-2 text-left backdrop-blur md:top-0"
+          aria-expanded={!collapsed}
+          className="flex min-h-10 w-full cursor-pointer items-center gap-2 bg-sunken px-5 py-2 text-left"
         >
-          <ChevronRight className={cn("size-3.5 text-zinc-400 transition-transform", !collapsed && "rotate-90")} />
-          {group.status && <StatusIcon status={group.status} progress={50} className="size-3.5" />}
-          {group.priority && <PriorityIcon priority={group.priority} className="size-3.5" />}
-          {group.kind === "assignee" && <Avatar user={group.user ?? null} size="xs" />}
           <span
             className={cn(
-              "text-[13px] font-semibold",
-              group.tone === "danger" ? "text-red-600" : group.tone === "warn" ? "text-amber-700" : "text-zinc-700",
+              "flex-1 text-sm font-semibold",
+              group.tone === "danger" ? "text-danger" : group.tone === "warn" ? "text-blocked-ink" : "text-todo-ink",
             )}
           >
-            {group.label}
+            {group.label} · {group.tasks.length}
           </span>
-          <span className="text-xs tabular-nums text-zinc-400">{group.tasks.length}</span>
+          <span className="text-sm text-ink-muted">{collapsed ? "Göster" : "Gizle"}</span>
+          <ChevronDown className={cn("size-4 text-ink-muted transition-transform", collapsed && "-rotate-90")} aria-hidden="true" />
         </button>
       )}
       {!collapsed && (
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y divide-line">
           {visible.map((t) => (
-            <TaskRow key={t.id} task={t} showAssignee={showAssignee} />
+            <TaskRow key={t.id} task={t} showAssignee={showAssignee} avatar={avatar} />
           ))}
           {limit && group.tasks.length > limit && (
-            <button type="button" onClick={() => setExpanded(!expanded)} className="w-full px-3 py-2 text-left text-xs font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800">
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="min-h-11 w-full cursor-pointer px-5 text-left text-base font-semibold text-accent hover:bg-paper"
+            >
               {expanded ? "Daha az göster" : `${group.tasks.length - limit} görev daha göster`}
             </button>
           )}

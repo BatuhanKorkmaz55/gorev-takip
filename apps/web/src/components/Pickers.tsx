@@ -6,71 +6,58 @@ import { Check } from "lucide-react";
 import { useUsers } from "@/lib/queries";
 import { useSession } from "@/hooks/useSession";
 import { Avatar } from "./Avatar";
-import { MenuItem, Popover } from "./Popover";
-import { PriorityIcon, StatusIcon } from "./TaskIcons";
+import { MenuItem, MenuLabel, Popover } from "./Popover";
+import { PriorityText, StatusIcon } from "./TaskIcons";
 
-export function StatusMenu({
-  value,
-  onChange,
-  trigger,
-  align,
-}: {
-  value: TaskStatus;
-  onChange: (s: TaskStatus) => void;
-  trigger: (p: { open: boolean; toggle: () => void }) => ReactNode;
-  align?: "start" | "end";
-}) {
+type Trigger = (p: { open: boolean; toggle: () => void }) => ReactNode;
+
+export function StatusMenu({ value, onChange, trigger, align }: { value: TaskStatus; onChange: (s: TaskStatus) => void; trigger: Trigger; align?: "start" | "end" }) {
   return (
     <Popover trigger={trigger} align={align}>
-      {(close) =>
-        TASK_STATUSES.map((s) => (
-          <MenuItem
-            key={s}
-            active={s === value}
-            onClick={() => {
-              if (s !== value) onChange(s);
-              close();
-            }}
-          >
-            <StatusIcon status={s} progress={50} />
-            <span className="flex-1">{STATUS_META[s].label}</span>
-            {s === value && <Check className="size-3.5 text-zinc-400" />}
-          </MenuItem>
-        ))
-      }
+      {(close) => (
+        <>
+          <MenuLabel>Durumu değiştir</MenuLabel>
+          {TASK_STATUSES.map((s) => (
+            <MenuItem
+              key={s}
+              active={s === value}
+              onClick={() => {
+                if (s !== value) onChange(s);
+                close();
+              }}
+            >
+              <StatusIcon status={s} />
+              <span className="flex-1">{STATUS_META[s].label}</span>
+              {s === value && <Check className="size-4" aria-label="Seçili" />}
+            </MenuItem>
+          ))}
+        </>
+      )}
     </Popover>
   );
 }
 
-export function PriorityMenu({
-  value,
-  onChange,
-  trigger,
-  align,
-}: {
-  value: Priority;
-  onChange: (p: Priority) => void;
-  trigger: (p: { open: boolean; toggle: () => void }) => ReactNode;
-  align?: "start" | "end";
-}) {
+export function PriorityMenu({ value, onChange, trigger, align }: { value: Priority; onChange: (p: Priority) => void; trigger: Trigger; align?: "start" | "end" }) {
   return (
     <Popover trigger={trigger} align={align}>
-      {(close) =>
-        [...PRIORITIES].reverse().map((p) => (
-          <MenuItem
-            key={p}
-            active={p === value}
-            onClick={() => {
-              if (p !== value) onChange(p);
-              close();
-            }}
-          >
-            <PriorityIcon priority={p} />
-            <span className="flex-1">{PRIORITY_META[p].label}</span>
-            {p === value && <Check className="size-3.5 text-zinc-400" />}
-          </MenuItem>
-        ))
-      }
+      {(close) => (
+        <>
+          <MenuLabel>Öncelik</MenuLabel>
+          {[...PRIORITIES].reverse().map((p) => (
+            <MenuItem
+              key={p}
+              active={p === value}
+              onClick={() => {
+                if (p !== value) onChange(p);
+                close();
+              }}
+            >
+              <PriorityText priority={p} always className="flex-1 text-base" />
+              {p === value && <Check className="size-4" aria-label="Seçili" />}
+            </MenuItem>
+          ))}
+        </>
+      )}
     </Popover>
   );
 }
@@ -83,18 +70,18 @@ export function AssigneeMenu({
 }: {
   value: string | null;
   onChange: (id: string | null) => void;
-  trigger: (p: { open: boolean; toggle: () => void }) => ReactNode;
+  trigger: Trigger;
   align?: "start" | "end";
 }) {
   const me = useSession();
   const { data: users = [] } = useUsers();
   const active = users.filter((u) => u.active);
-  // Oturum sahibi en üstte
   const sorted: UserLite[] = [...active.filter((u) => u.id === me.id), ...active.filter((u) => u.id !== me.id)];
   return (
-    <Popover trigger={trigger} align={align} className="max-h-80 overflow-auto">
+    <Popover trigger={trigger} align={align} className="max-h-96 w-72 overflow-auto">
       {(close) => (
         <>
+          <MenuLabel>Kime verilsin?</MenuLabel>
           {sorted.map((u) => (
             <MenuItem
               key={u.id}
@@ -104,15 +91,15 @@ export function AssigneeMenu({
                 close();
               }}
             >
-              <Avatar user={u} size="xs" />
+              <Avatar user={u} size="sm" />
               <span className="flex-1 truncate">
                 {u.name}
-                {u.id === me.id && <span className="text-zinc-400"> (ben)</span>}
+                {u.id === me.id && <span className="text-ink-muted"> (ben)</span>}
               </span>
-              {u.id === value && <Check className="size-3.5 text-zinc-400" />}
+              {u.id === value && <Check className="size-4" aria-label="Seçili" />}
             </MenuItem>
           ))}
-          <div className="my-1 border-t border-zinc-100" />
+          <div className="my-1 border-t border-line" />
           <MenuItem
             active={value === null}
             onClick={() => {
@@ -120,8 +107,8 @@ export function AssigneeMenu({
               close();
             }}
           >
-            <Avatar user={null} size="xs" />
-            <span className="flex-1">Atamayı kaldır</span>
+            <Avatar user={null} size="sm" />
+            <span className="flex-1">Kimseye verme</span>
           </MenuItem>
         </>
       )}

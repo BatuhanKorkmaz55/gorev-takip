@@ -13,11 +13,12 @@ dashboardRouter.get("/", async (req, res) => {
   const weekStart = startOfDayInTz(weekStartKey(today));
   const open = { in: OPEN_STATUSES };
 
-  const [myOpen, myInProgress, myOverdue, myDoneThisWeek, teamOpen, teamDoneThisWeek, assignedByMeOpen] =
+  const [myOpen, myInProgress, myOverdue, myDueToday, myDoneThisWeek, teamOpen, teamDoneThisWeek, assignedByMeOpen] =
     await Promise.all([
       prisma.task.count({ where: { assigneeId: me.id, status: open } }),
       prisma.task.count({ where: { assigneeId: me.id, status: "IN_PROGRESS" } }),
       prisma.task.count({ where: { assigneeId: me.id, status: open, dueDate: { lt: keyToDate(today) } } }),
+      prisma.task.count({ where: { assigneeId: me.id, status: open, dueDate: keyToDate(today) } }),
       prisma.task.count({ where: { assigneeId: me.id, status: "DONE", completedAt: { gte: weekStart } } }),
       prisma.task.count({ where: { status: open } }),
       prisma.task.count({ where: { status: "DONE", completedAt: { gte: weekStart } } }),
@@ -28,7 +29,7 @@ dashboardRouter.get("/", async (req, res) => {
 
   const body: DashboardDTO = {
     today,
-    counts: { myOpen, myInProgress, myOverdue, myDoneThisWeek, teamOpen, teamDoneThisWeek, assignedByMeOpen },
+    counts: { myOpen, myInProgress, myOverdue, myDueToday, myDoneThisWeek, teamOpen, teamDoneThisWeek, assignedByMeOpen },
   };
   res.json(body);
 });

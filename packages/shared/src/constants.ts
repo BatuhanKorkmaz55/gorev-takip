@@ -9,9 +9,9 @@ export type Role = (typeof ROLES)[number];
 
 export const STATUS_META: Record<TaskStatus, { label: string; short: string; tone: string }> = {
   TODO: { label: "Yapılacak", short: "Yapılacak", tone: "slate" },
-  IN_PROGRESS: { label: "Devam ediyor", short: "Devam", tone: "blue" },
+  IN_PROGRESS: { label: "Devam ediyor", short: "Devam ediyor", tone: "blue" },
   BLOCKED: { label: "Beklemede", short: "Beklemede", tone: "amber" },
-  DONE: { label: "Tamamlandı", short: "Bitti", tone: "green" },
+  DONE: { label: "Tamamlandı", short: "Tamamlandı", tone: "green" },
   CANCELLED: { label: "İptal", short: "İptal", tone: "zinc" },
 };
 
@@ -47,15 +47,16 @@ export const ACTIVITY_TYPES = [
 ] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
+/** Beyaz baş harflerle en az 5.8:1 kontrast veren rozet renkleri */
 export const AVATAR_COLORS = [
-  "#6366f1",
-  "#0ea5e9",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#ec4899",
-  "#14b8a6",
-  "#f97316",
-  "#64748b",
+  "#3A5BA9",
+  "#1F6F78",
+  "#2E6B3F",
+  "#9A3B2E",
+  "#7A4E9E",
+  "#8A5A00",
+  "#A23B72",
+  "#0E6A8A",
+  "#5E6B1E",
+  "#4B5563",
 ];

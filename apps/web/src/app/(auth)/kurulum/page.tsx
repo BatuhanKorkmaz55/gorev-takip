@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { UserLite } from "@gorev/shared";
 import { api, errorMessage } from "@/lib/api";
-import { Button, Field, Input } from "@/components/ui";
+import { Button, ErrorBox, Field, Input } from "@/components/ui";
 import { AuthCard } from "../AuthCard";
 
 export default function SetupPage() {
@@ -39,8 +39,8 @@ export default function SetupPage() {
   };
 
   return (
-    <AuthCard title="Hoş geldin! 👋" subtitle="İlk kurulum: yönetici hesabını oluştur. Sonra ekip arkadaşlarını ekleyebilirsin.">
-      <form onSubmit={submit} className="space-y-4">
+    <AuthCard title="Hoş geldin" subtitle="İlk kurulum: yönetici hesabını oluştur. Sonra ekip arkadaşlarını ekleyebilirsin.">
+      <form onSubmit={submit} className="space-y-5">
         <Field label="Ad soyad">
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required />
         </Field>
@@ -50,8 +50,8 @@ export default function SetupPage() {
         <Field label="Şifre" hint="En az 6 karakter">
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
         </Field>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        <Button type="submit" variant="primary" className="w-full" loading={loading}>
+        {error && <ErrorBox>{error}</ErrorBox>}
+        <Button type="submit" variant="primary" size="lg" className="w-full" loading={loading}>
           Hesabı oluştur ve başla
         </Button>
       </form>

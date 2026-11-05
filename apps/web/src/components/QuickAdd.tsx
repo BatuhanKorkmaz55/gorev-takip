@@ -1,27 +1,27 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   PRIORITY_META,
   addDaysKey,
+  dueLabel,
   formatDateKey,
-  humanDue,
   normalizeTr,
   parseQuickAdd,
   type Priority,
   type TaskDTO,
 } from "@gorev/shared";
-import { AtSign, CalendarDays, CircleHelp, CornerDownLeft, Hash, Plus, UserRound } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useCreateTask, useTags, useUsers } from "@/lib/queries";
 import { errorMessage } from "@/lib/api";
 import { useSession } from "@/hooks/useSession";
 import { useTaskDrawer } from "@/hooks/useTaskDrawer";
 import { cn, firstName, todayKey } from "@/lib/utils";
 import { Avatar } from "./Avatar";
-import { PriorityIcon } from "./TaskIcons";
-import { MenuItem, Popover } from "./Popover";
+import { PriorityText } from "./TaskIcons";
+import { MenuItem, MenuLabel, Popover } from "./Popover";
 import { useToast } from "./Toast";
-import { Kbd } from "./ui";
+import { Button, ErrorBox } from "./ui";
 
 type Suggestion = { key: string; label: string; insert: string; icon?: React.ReactNode; hint?: string };
 
@@ -36,6 +36,10 @@ export interface QuickAddHandle {
   focus: () => void;
 }
 
+/**
+ * Yeni görev kutusu. Görev tek satırda yazılır; kişi, tarih, öncelik ve etiket ya alttaki
+ * açık başlıklı seçicilerle ya da kısayollarla (@ayşe, yarın, !acil, #satış) belirlenir.
+ */
 export const QuickAdd = forwardRef<
   QuickAddHandle,
   {
@@ -44,10 +48,12 @@ export const QuickAdd = forwardRef<
     defaultAssigneeId?: string | null;
     onCreated?: (t: TaskDTO) => void;
     className?: string;
-    placeholder?: string;
+    /** Pencere içinde kullanıldığında kart çerçevesi olmadan */
+    bare?: boolean;
   }
->(function QuickAdd({ autoFocus, defaultAssigneeId, onCreated, className, placeholder }, ref) {
+>(function QuickAdd({ autoFocus, defaultAssigneeId, onCreated, className, bare }, ref) {
   const me = useSession();
+  const inputId = useId();
   const { data: users = [] } = useUsers();
   const { data: tags = [] } = useTags();
   const create = useCreateTask();
@@ -59,7 +65,6 @@ export const QuickAdd = forwardRef<
   const [sel, setSel] = useState(0);
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Programatik metin değişikliğinden sonra imlecin gideceği yer */
   const pendingCaret = useRef<number | null>(null);
 
   useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
@@ -80,10 +85,10 @@ export const QuickAdd = forwardRef<
     [value, activeUsers, me.id, today],
   );
   const fallbackAssignee = defaultAssigneeId === undefined ? me.id : defaultAssigneeId;
-  const effectiveAssigneeId = parsed.assigneeId === undefined ? fallbackAssignee : parsed.assigneeId;
-  const effectiveAssignee = activeUsers.find((u) => u.id === effectiveAssigneeId) ?? null;
+  const assigneeId = parsed.assigneeId === undefined ? fallbackAssignee : parsed.assigneeId;
+  const assignee = activeUsers.find((u) => u.id === assigneeId) ?? null;
+  const unresolved = parsed.tokens.filter((t) => !t.ok);
 
-  /** Kullanıcıyı benzersiz biçimde tanımlayan @etiket */
   const handleFor = (u: { id: string; name: string }) => {
     const fn = normalizeTr(firstName(u.name));
     const clash = activeUsers.filter((x) => normalizeTr(firstName(x.name)) === fn).length > 1;
@@ -110,10 +115,10 @@ export const QuickAdd = forwardRef<
           key: u.id,
           label: u.id === me.id ? `${u.name} (ben)` : u.name,
           insert: `@${handleFor(u)}`,
-          icon: <Avatar user={u} size="xs" />,
+          icon: <Avatar user={u} size="sm" />,
           hint: u.title ?? undefined,
         }));
-      if (!q || "kimse".startsWith(q)) list.push({ key: "none", label: "Kimseye atama", insert: "@kimse", icon: <Avatar user={null} size="xs" /> });
+      if (!q || "kimse".startsWith(q)) list.push({ key: "none", label: "Kimseye verme", insert: "@kimse", icon: <Avatar user={null} size="sm" /> });
       return list;
     }
     if (word.startsWith("#")) {
@@ -128,7 +133,6 @@ export const QuickAdd = forwardRef<
         key: p.p,
         label: PRIORITY_META[p.p].label,
         insert: `!${p.word}`,
-        icon: <PriorityIcon priority={p.p} />,
       }));
     }
     return [];
@@ -145,7 +149,7 @@ export const QuickAdd = forwardRef<
     setSel(0);
   };
 
-  /** Butonlarla ifade ekleme (sözdizimini bilmeyenler için) */
+  /** Seçicilerle ifade ekleme (kısayolları bilmeyenler için) */
   const appendToken = (token: string, replaceKind?: "due" | "priority" | "assignee") => {
     let base = value;
     if (replaceKind) {
@@ -161,24 +165,33 @@ export const QuickAdd = forwardRef<
     setValue(next);
   };
 
+  const removeToken = (kind: "due" | "priority") => {
+    const existing = parsed.tokens.find((t) => t.kind === kind && t.ok);
+    if (!existing) return;
+    const next = value.replace(existing.raw, "").replace(/\s{2,}/g, " ");
+    pendingCaret.current = next.length;
+    setValue(next);
+  };
+
   const submit = async () => {
     setError(null);
     if (!parsed.title) {
-      setError("Görev için kısa bir başlık yazın");
+      setError("Önce görevin ne olduğunu kısaca yaz.");
+      inputRef.current?.focus();
       return;
     }
     try {
       const task = await create.mutateAsync({
         title: parsed.title,
-        assigneeId: effectiveAssigneeId,
+        assigneeId,
         priority: parsed.priority,
         dueDate: parsed.dueDate,
         tags: parsed.tags,
       });
       setValue("");
       setCaret(0);
-      const who = task.assignee && task.assignee.id !== me.id ? ` · ${firstName(task.assignee.name)} kişisine atandı` : "";
-      toast(`#${task.number} eklendi${who}`, { action: { label: "Aç", onClick: () => drawer.open(task.number) } });
+      const who = task.assignee && task.assignee.id !== me.id ? ` ve ${task.assignee.name} kişisine verildi` : "";
+      toast(`“${task.title}” eklendi${who}.`, { action: { label: "Görevi aç", onClick: () => drawer.open(task.number) } });
       onCreated?.(task);
     } catch (e) {
       setError(errorMessage(e));
@@ -220,25 +233,31 @@ export const QuickAdd = forwardRef<
   };
 
   const dateOptions = [
-    { word: "bugün", key: today },
-    { word: "yarın", key: addDaysKey(today, 1) },
-    { word: "cuma", key: undefined },
-    { word: "pazartesi", key: undefined },
-    { word: "haftaya", key: addDaysKey(today, 7) },
+    { word: "bugün", label: "Bugün", key: today },
+    { word: "yarın", label: "Yarın", key: addDaysKey(today, 1) },
+    { word: "cuma", label: "Bu cuma", key: undefined },
+    { word: "pazartesi", label: "Pazartesi", key: undefined },
+    { word: "haftaya", label: "1 hafta sonra", key: addDaysKey(today, 7) },
   ];
 
+  const whoText = assignee ? (assignee.id === me.id ? "Bana" : assignee.name) : "Kimseye";
+  const whenText = parsed.dueDate ? dueLabel(parsed.dueDate, today).text : "Tarih yok";
+  const priorityText = parsed.priority ? PRIORITY_META[parsed.priority].label : "Normal";
+  const tagText = parsed.tags.length ? parsed.tags.map((t) => `#${t}`).join(" ") : "Ekle";
+
   return (
-    <div className={cn("relative", className)}>
-      <div
-        className={cn(
-          "rounded-xl border bg-white shadow-xs transition",
-          focused ? "border-accent-500 ring-4 ring-accent-500/10" : "border-zinc-200 hover:border-zinc-300",
-          error && "border-red-400 ring-red-500/10",
-        )}
-      >
-        <div className="flex items-center gap-2 px-3">
-          <Plus className={cn("size-[18px] shrink-0", focused ? "text-accent-600" : "text-zinc-400")} />
+    <section
+      aria-label="Yeni görev ekle"
+      className={cn(!bare && "rounded-lg border border-line bg-surface p-5 shadow-card", "flex flex-col gap-3", className)}
+    >
+      <label htmlFor={inputId} className="text-lg font-bold text-ink">
+        Yeni görev ekle
+      </label>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="relative min-w-0 flex-[1_1_300px]">
           <input
+            id={inputId}
             ref={inputRef}
             value={value}
             autoFocus={autoFocus}
@@ -250,227 +269,201 @@ export const QuickAdd = forwardRef<
             }}
             onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
             onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 120)}
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
             onKeyDown={onKeyDown}
-            placeholder={placeholder ?? "Yeni görev yaz… örn: Teklifi hazırla @ayşe yarın !acil #satış"}
-            className="h-12 min-w-0 flex-1 bg-transparent text-[15px] text-zinc-900 outline-none placeholder:text-zinc-400"
-            aria-label="Hızlı görev ekle"
+            placeholder="Ne yapılması gerekiyor?"
+            className={cn(
+              "h-14 w-full rounded-md border bg-surface px-4 text-[17px] text-ink outline-none placeholder:text-ink-muted focus:ring-3 focus:ring-accent/20",
+              error ? "border-danger" : "border-line-strong focus:border-accent",
+            )}
             autoComplete="off"
             spellCheck={false}
+            aria-autocomplete="list"
+            aria-expanded={showSuggestions}
           />
-          {value ? (
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => void submit()}
-              disabled={create.isPending}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-600 px-3 text-[13px] font-medium text-white hover:bg-accent-700 disabled:opacity-60"
-            >
-              Ekle <CornerDownLeft className="size-3.5" />
-            </button>
-          ) : (
-            <span className="hidden items-center gap-1 text-xs text-zinc-400 sm:flex">
-              <Kbd>N</Kbd>
-            </span>
+
+          {showSuggestions && (
+            <div className="animate-pop-in absolute top-full left-0 z-40 mt-1.5 w-80 max-w-full rounded-lg border border-line bg-surface p-1.5 shadow-pop" role="listbox">
+              {suggestions.map((s, i) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  role="option"
+                  aria-selected={i === selIndex}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applySuggestion(s);
+                  }}
+                  onMouseEnter={() => setSel(i)}
+                  className={cn(
+                    "flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-md px-3 text-left text-base",
+                    i === selIndex ? "bg-accent-soft font-semibold text-ink" : "text-ink",
+                  )}
+                >
+                  {s.icon}
+                  <span className="flex-1 truncate">{s.label}</span>
+                  {s.hint && <span className="text-sm font-normal text-ink-muted">{s.hint}</span>}
+                </button>
+              ))}
+              <p className="px-3 pt-1 pb-1.5 text-sm text-ink-muted">Ok tuşlarıyla seç, Enter ile ekle</p>
+            </div>
           )}
         </div>
-
-        {/* Önizleme + yardımcı butonlar */}
-        {(value || focused) && (
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-zinc-100 px-3 py-2">
-            <Popover
-              trigger={({ toggle }) => (
-                <ChipButton onClick={toggle} active={parsed.assigneeId !== undefined}>
-                  {effectiveAssignee ? <Avatar user={effectiveAssignee} size="xs" className="ring-0" /> : <UserRound className="size-3.5" />}
-                  {effectiveAssignee ? (effectiveAssignee.id === me.id ? "Bana" : firstName(effectiveAssignee.name)) : "Atamasız"}
-                </ChipButton>
-              )}
-            >
-              {(close) => (
-                <div className="max-h-72 overflow-auto">
-                  {activeUsers.map((u) => (
-                    <MenuItem
-                      key={u.id}
-                      active={u.id === effectiveAssigneeId}
-                      onClick={() => {
-                        appendToken(u.id === me.id ? "@ben" : `@${handleFor(u)}`, "assignee");
-                        close();
-                      }}
-                    >
-                      <Avatar user={u} size="xs" /> {u.name}
-                      {u.id === me.id && <span className="text-zinc-400">(ben)</span>}
-                    </MenuItem>
-                  ))}
-                  <MenuItem
-                    onClick={() => {
-                      appendToken("@kimse", "assignee");
-                      close();
-                    }}
-                  >
-                    <Avatar user={null} size="xs" /> Kimseye atama
-                  </MenuItem>
-                </div>
-              )}
-            </Popover>
-
-            <Popover
-              trigger={({ toggle }) => (
-                <ChipButton onClick={toggle} active={!!parsed.dueDate}>
-                  <CalendarDays className="size-3.5" />
-                  {parsed.dueDate ? humanDue(parsed.dueDate, today) : "Tarih"}
-                </ChipButton>
-              )}
-            >
-              {(close) => (
-                <>
-                  {dateOptions.map((d) => (
-                    <MenuItem
-                      key={d.word}
-                      onClick={() => {
-                        appendToken(d.word, "due");
-                        close();
-                      }}
-                    >
-                      <span className="flex-1 capitalize">{d.word}</span>
-                      {d.key && <span className="text-xs text-zinc-400">{formatDateKey(d.key)}</span>}
-                    </MenuItem>
-                  ))}
-                  <div className="border-t border-zinc-100 p-1.5 pt-2">
-                    <input
-                      type="date"
-                      min={today}
-                      className="h-8 w-full rounded-md border border-zinc-200 px-2 text-sm"
-                      onChange={(e) => {
-                        if (!e.target.value) return;
-                        const [y, m, dd] = e.target.value.split("-");
-                        appendToken(`${dd}.${m}.${y}`, "due");
-                        close();
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-            </Popover>
-
-            <Popover
-              trigger={({ toggle }) => (
-                <ChipButton onClick={toggle} active={!!parsed.priority}>
-                  <PriorityIcon priority={parsed.priority ?? "NORMAL"} className="size-3.5" />
-                  {parsed.priority ? PRIORITY_META[parsed.priority].label : "Öncelik"}
-                </ChipButton>
-              )}
-            >
-              {(close) =>
-                PRIORITY_WORDS.map((p) => (
-                  <MenuItem
-                    key={p.p}
-                    active={parsed.priority === p.p}
-                    onClick={() => {
-                      appendToken(`!${p.word}`, "priority");
-                      close();
-                    }}
-                  >
-                    <PriorityIcon priority={p.p} /> {PRIORITY_META[p.p].label}
-                  </MenuItem>
-                ))
-              }
-            </Popover>
-
-            <ChipButton onClick={() => appendToken("#")} active={parsed.tags.length > 0}>
-              <Hash className="size-3.5" />
-              {parsed.tags.length ? parsed.tags.map((t) => `#${t}`).join(" ") : "Etiket"}
-            </ChipButton>
-
-            {parsed.tokens
-              .filter((t) => !t.ok)
-              .map((t) => (
-                <span key={t.raw} className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                  <AtSign className="size-3" /> {t.label}
-                </span>
-              ))}
-
-            <div className="ml-auto">
-              <Popover
-                align="end"
-                className="w-80 p-3"
-                trigger={({ toggle }) => (
-                  <button type="button" onClick={toggle} className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600">
-                    <CircleHelp className="size-3.5" /> Kısayollar
-                  </button>
-                )}
-              >
-                {() => <SyntaxHelp />}
-              </Popover>
-            </div>
-          </div>
-        )}
+        <Button variant="primary" size="lg" className="w-full sm:w-auto" onMouseDown={(e) => e.preventDefault()} onClick={() => void submit()} loading={create.isPending}>
+          Görevi ekle
+        </Button>
       </div>
 
-      {error && <p className="mt-1.5 px-1 text-xs text-red-600">{error}</p>}
+      {/* Açık başlıklı seçiciler */}
+      <div className="flex flex-wrap gap-2">
+        <Popover
+          trigger={({ toggle }) => (
+            <ChipButton onClick={toggle} label="Kime" value={whoText} set={parsed.assigneeId !== undefined} icon={<Avatar user={assignee} size="sm" />} />
+          )}
+          className="max-h-96 w-72 overflow-auto"
+        >
+          {(close) => (
+            <>
+              <MenuLabel>Kime verilsin?</MenuLabel>
+              {activeUsers.map((u) => (
+                <MenuItem
+                  key={u.id}
+                  active={u.id === assigneeId}
+                  onClick={() => {
+                    appendToken(u.id === me.id ? "@ben" : `@${handleFor(u)}`, "assignee");
+                    close();
+                  }}
+                >
+                  <Avatar user={u} size="sm" /> <span className="flex-1 truncate">{u.name}</span>
+                  {u.id === me.id && <span className="text-ink-muted">(ben)</span>}
+                </MenuItem>
+              ))}
+              <MenuItem
+                active={assigneeId === null}
+                onClick={() => {
+                  appendToken("@kimse", "assignee");
+                  close();
+                }}
+              >
+                <Avatar user={null} size="sm" /> Kimseye verme
+              </MenuItem>
+            </>
+          )}
+        </Popover>
 
-      {showSuggestions && (
-        <div className="animate-pop-in absolute left-8 top-12 z-40 w-72 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg shadow-zinc-900/10">
-          {suggestions.map((s, i) => (
-            <button
-              key={s.key}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                applySuggestion(s);
-              }}
-              onMouseEnter={() => setSel(i)}
-              className={cn("flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm", i === selIndex ? "bg-accent-50 text-accent-700" : "text-zinc-700")}
-            >
-              {s.icon}
-              <span className="flex-1 truncate">{s.label}</span>
-              {s.hint && <span className="text-xs text-zinc-400">{s.hint}</span>}
-            </button>
-          ))}
-          <p className="px-2.5 pb-1 pt-1.5 text-[11px] text-zinc-400">↑↓ seç · Enter ekle</p>
-        </div>
-      )}
-    </div>
+        <Popover trigger={({ toggle }) => <ChipButton onClick={toggle} label="Ne zaman" value={whenText} set={!!parsed.dueDate} />}>
+          {(close) => (
+            <>
+              <MenuLabel>Bitiş tarihi</MenuLabel>
+              {dateOptions.map((d) => (
+                <MenuItem
+                  key={d.word}
+                  onClick={() => {
+                    appendToken(d.word, "due");
+                    close();
+                  }}
+                >
+                  <span className="flex-1">{d.label}</span>
+                  {d.key && <span className="text-sm text-ink-muted">{formatDateKey(d.key)}</span>}
+                </MenuItem>
+              ))}
+              <div className="mt-1 border-t border-line p-2">
+                <label className="block text-sm font-semibold text-ink-muted">
+                  Başka bir gün seç
+                  <input
+                    type="date"
+                    min={today}
+                    className="mt-1 h-11 w-full rounded-md border border-line-strong px-3 text-base text-ink"
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const [y, m, dd] = e.target.value.split("-");
+                      appendToken(`${dd}.${m}.${y}`, "due");
+                      close();
+                    }}
+                  />
+                </label>
+              </div>
+              {parsed.dueDate && (
+                <MenuItem
+                  danger
+                  onClick={() => {
+                    removeToken("due");
+                    close();
+                  }}
+                >
+                  Tarihi kaldır
+                </MenuItem>
+              )}
+            </>
+          )}
+        </Popover>
+
+        <Popover trigger={({ toggle }) => <ChipButton onClick={toggle} label="Öncelik" value={priorityText} set={!!parsed.priority} />}>
+          {(close) => (
+            <>
+              <MenuLabel>Öncelik</MenuLabel>
+              {PRIORITY_WORDS.map((p) => (
+                <MenuItem
+                  key={p.p}
+                  active={(parsed.priority ?? "NORMAL") === p.p}
+                  onClick={() => {
+                    appendToken(`!${p.word}`, "priority");
+                    close();
+                  }}
+                >
+                  <PriorityText priority={p.p} always className="text-base" />
+                </MenuItem>
+              ))}
+            </>
+          )}
+        </Popover>
+
+        <ChipButton onClick={() => appendToken("#")} label="Etiket" value={tagText} set={parsed.tags.length > 0} />
+      </div>
+
+      {unresolved.map((t) => (
+        <p key={t.raw} className="text-sm font-semibold text-blocked-ink">
+          “{t.raw}” adında bir ekip arkadaşı bulunamadı. Görev {fallbackAssignee === me.id ? "sana" : "seçili kişiye"} verilecek.
+        </p>
+      ))}
+      {error && <ErrorBox>{error}</ErrorBox>}
+
+      <p className="text-sm text-ink-muted">
+        İpucu: kutuya doğrudan da yazabilirsin — <b className="font-semibold text-ink">@ayşe</b> kişiye verir,{" "}
+        <b className="font-semibold text-ink">yarın</b> tarih koyar, <b className="font-semibold text-ink">!acil</b> önceliği,{" "}
+        <b className="font-semibold text-ink">#satış</b> etiketi belirler.
+      </p>
+    </section>
   );
 });
 
-function ChipButton({ children, onClick, active }: { children: React.ReactNode; onClick: () => void; active?: boolean }) {
+function ChipButton({
+  label,
+  value,
+  onClick,
+  set,
+  icon,
+}: {
+  label: string;
+  value: string;
+  onClick: () => void;
+  set?: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors",
-        active ? "border-accent-100 bg-accent-50 text-accent-700" : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700",
+        "inline-flex h-11 max-w-full cursor-pointer items-center gap-2 rounded-md border px-3.5 text-[15px] text-ink transition-colors",
+        set ? "border-accent bg-accent-soft" : "border-line-strong bg-surface hover:bg-paper",
       )}
     >
-      {children}
+      {icon}
+      <span className="text-ink-muted">{label}:</span>
+      <span className="truncate font-semibold">{value}</span>
+      <ChevronDown className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
     </button>
-  );
-}
-
-function SyntaxHelp() {
-  const rows: [string, string][] = [
-    ["@ayşe", "Ayşe'ye ata (@ben, @kimse)"],
-    ["yarın", "Bitiş tarihi: bugün, yarın, cuma, haftaya, 20.11, +3"],
-    ["!acil", "Öncelik: !acil !yüksek !düşük (ya da !!! / !!)"],
-    ["#satış", "Etiket ekle"],
-  ];
-  return (
-    <div className="space-y-2 text-sm">
-      <p className="font-medium text-zinc-800">Tek satırda görev yaz</p>
-      <p className="text-xs text-zinc-500">Kişi belirtmezsen görev sana atanır. Enter&apos;a bas, bitti.</p>
-      <div className="space-y-1.5 pt-1">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex gap-3 text-xs">
-            <code className="w-16 shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-700">{k}</code>
-            <span className="text-zinc-600">{v}</span>
-          </div>
-        ))}
-      </div>
-      <p className="rounded-lg bg-zinc-50 p-2 font-mono text-[11px] leading-relaxed text-zinc-600">
-        Fatura kesilecek @can cuma !yüksek #muhasebe
-      </p>
-    </div>
   );
 }

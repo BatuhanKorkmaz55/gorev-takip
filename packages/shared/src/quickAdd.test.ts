@@ -69,3 +69,14 @@ test("atamasız", () => {
   assert.equal(r.assigneeId, null);
   assert.equal(r.title, "Genel iş");
 });
+
+import { dueLabel, longDate } from "./dates";
+test("kelimeyle tarih", () => {
+  assert.deepEqual(dueLabel("2026-11-03", today), { text: "2 gün gecikti", tone: "overdue" });
+  assert.deepEqual(dueLabel("2026-11-05", today), { text: "Bugün", tone: "today" });
+  assert.deepEqual(dueLabel("2026-11-06", today), { text: "Yarın", tone: "tomorrow" });
+  assert.equal(dueLabel("2026-11-07", today).text, "Cumartesi, 7 Kas");
+  assert.equal(dueLabel("2026-11-20", today).text, "20 Kas");
+  assert.equal(dueLabel("2027-01-03", today).text, "3 Oca 2027");
+  assert.equal(longDate(today), "Perşembe, 5 Kasım");
+});
