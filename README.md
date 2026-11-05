@@ -1,8 +1,8 @@
 # Görev Takip
 
-Ekip için **basit, okunur ve hızlı** iş takibi. Görevini tek satırda yaz, "Görevi ekle"ye bas; kime, ne zaman, ne kadar acil olduğunu hemen altındaki açık başlıklı seçicilerle (ya da kısayollarla) belirt. Her durum değişikliği ve not, görevin geçmişine otomatik düşer.
+Ekip için **sade** iş takibi. Üç iş var, o kadar: **görev ver, görevi yap, tamamla.**
 
-Arayüz okunurluk için tasarlandı: Atkinson Hyperlegible Next yazı tipi, 16px gövde metni, hiçbir metin 14px altında değil, tüm metinlerde en az 4.5:1 kontrast, tüm düğmeler en az 44px. Her durum renkle değil **kelimeyle** yazılır, tarihler "Bugün", "Yarın", "2 gün gecikti" diye okunur. Tasarım kuralları: [docs/TASARIM.md](docs/TASARIM.md).
+Arayüz okunurluk için tasarlandı: Atkinson Hyperlegible Next yazı tipi, 16px metin, en az 4.5:1 kontrast, en az 44px düğmeler. Durumlar yazıyla, tarihler kelimeyle ("Bugün", "Yarın", "2 gün gecikti") gösterilir. Tasarım kuralları: [docs/TASARIM.md](docs/TASARIM.md).
 
 **Monorepo:** Next.js 16 (web) · Node.js + Express 5 (API) · PostgreSQL + Prisma · pnpm workspaces
 
@@ -11,30 +11,26 @@ apps/
   api/        Express API, Prisma şeması, migration'lar, demo verisi
   web/        Next.js arayüzü (App Router, Tailwind 4, TanStack Query)
 packages/
-  shared/     Ortak tipler, doğrulama şemaları (zod), hızlı giriş ayrıştırıcısı, tarih metinleri
+  shared/     Ortak tipler, doğrulama şemaları (zod), yetki kuralları, tarih metinleri
 docs/
   TASARIM.md  Tasarım sistemi: ilkeler, renkler, yazı ölçeği, bileşen kuralları
 ```
 
-## Özellikler
+## Nasıl çalışır?
 
-- **Tek satırda görev:** kutuya ne yapılacağını yaz, altındaki **Kime / Ne zaman / Öncelik / Etiket** seçicileriyle ayrıntıyı belirle. Kısayolları bilenler doğrudan yazabilir: `Teklifi hazırla @ayşe yarın !acil #satış`
-  - `@isim` kişiye ver (`@ben`, `@kimse`) — yazarken kişi önerisi çıkar
-  - `bugün`, `yarın`, `cuma`, `haftaya`, `20.11`, `+3` → bitiş tarihi
-  - `!acil` `!yüksek` `!düşük` (ya da `!!!` / `!!`) → öncelik
-  - `#etiket` → etiket (mevcut etiketler önerilir)
-  - Kişi seçmezsen görev sana verilir.
-- **Durumlar:** Yapılacak · Devam ediyor · Beklemede · Tamamlandı · İptal. Satırdaki onay kutusu görevi tamamlar; sağdaki durum düğmesi her zaman görünür.
-- **Güncelleme notu:** Görevi açınca en üstte "Ne yaptın? Kısa bir not bırak" kutusu var; istersen aynı anda durumu da değiştir. Not, durum değişikliğinin açıklaması olarak geçmişe düşer.
-- **Otomatik geçmiş:** Atama, öncelik, tarih, ilerleme, başlık, etiket, alt adım değişiklikleri kim/ne zaman bilgisiyle kaydedilir.
-- **Alt adımlar (kontrol listesi), ilerleme yüzdesi, açıklama, etiketler.**
-- **Özet:** geciken, bugün teslim, devam eden ve bu hafta biten sayıları; tarihe göre gruplanmış görevlerim; başkasına verdiğim görevler; ekipteki son hareketler.
-- **Görevler:** Bana verilen / Benim verdiğim / Benim oluşturduğum / Herkesin; arama, durum-kişi-öncelik-tarih filtreleri; duruma, kişiye, tarihe veya önceliğe göre gruplama. Filtreler adres çubuğunda tutulur, bağlantıyla paylaşılabilir. Mobilde filtreler bir düğmenin arkasındadır.
-- **Pano (Kanban):** kartları sürükleyip bırakarak durum değiştir.
-- **Ekip:** her kişinin iş yükü (açık, devam, geciken, biten). Yönetici kişi ekler (geçici şifre otomatik üretilir ve paylaşmak için kopyalanır), düzenler, şifre sıfırlar, ekipten çıkarır. Çıkarılan kişinin açık görevlerinin ataması kaldırılır, geçmişi korunur; istenirse yeniden aktifleştirilir.
-- **Kısayollar:** `N` yeni görev, `Esc` paneli kapat, `⌘/Ctrl + Enter` notu kaydet.
-- **Yetkiler:** Herkes görev ekler, atar, günceller. Görevi yalnızca oluşturan veya yönetici siler. Ekip yönetimi yalnızca yöneticide.
-- Mobil uyumlu (alt gezinme çubuğu). Veriler 20 saniyede bir ve sekmeye dönünce tazelenir.
+- **Görev ver:** "Ne yapılacak?", "Kime?" (varsayılan: Ben) ve isteğe bağlı "Ne zamana?" seç, "Ekle"ye bas.
+- **Durumlar:** Yapılacak · Devam ediyor · Tamamlandı. Görevi yapan kişi satırdaki **Başla**, **Tamamla** ya da **Geri al** düğmesine basar. Tamamladıktan sonra bildirimdeki "Geri al" ile vazgeçilebilir.
+- **Sayfalar:**
+  - **Görevlerim:** bana verilenler.
+  - **Verdiğim görevler:** başkasına verdiklerim; durumu yalnızca görürüm.
+  - **Ekip:** kişiler ve açık görev sayıları; bir kişiye tıklayınca görevleri açılır.
+  - Görevlerim ve Verdiğim görevler, **Liste** ya da **Pano** olarak görülebilir.
+- **Görev detayı:** kim verdi, kim yapıyor, son tarih, açıklama, **Not ekle** ve geçmiş (kim, ne zaman, ne yaptı).
+- **Yetkiler** (API'de zorunlu, [`permissions.ts`](packages/shared/src/permissions.ts)):
+  - Durumu **yalnızca görevi yapan kişi** değiştirir; görevi veren de, yönetici de değiştiremez.
+  - Görevi düzenlemek ve silmek: görevi veren kişi ya da yönetici.
+  - Not eklemek: görevi yapan, veren ya da yönetici.
+  - Kişi eklemek, şifre sıfırlamak ve kişiyi çıkarmak: yönetici. Çıkarılan kişinin açık görevleri görevi verenlere geri döner. Aynı e-posta tekrar eklenirse hesap yeniden açılır.
 
 ## Kurulum
 
@@ -79,14 +75,15 @@ LC_ALL=en_US.UTF-8 /opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/v
 | `pnpm db:seed` | Demo verisini yükler (mevcut veriyi siler) |
 | `pnpm db:studio` | Prisma Studio ile veritabanını görüntüler |
 | `pnpm typecheck` | Tüm paketlerde TypeScript kontrolü |
-| `pnpm test` | Hızlı giriş ayrıştırıcısı testleri |
+| `pnpm test` | Yetki kuralı ve tarih testleri |
 
 ## Mimari notlar
 
 - Tarayıcı yalnızca web sunucusuyla konuşur; Next.js `/api/*` isteklerini `API_URL`'e iletir (`apps/web/next.config.ts`). Böylece oturum çerezi aynı kökende kalır, CORS gerekmez.
 - Oturum: `httpOnly` JWT çerezi (30 gün). Her istekte kullanıcı veritabanından okunur; pasife alınan kişinin oturumu hemen düşer.
 - Durum değiştiren isteklerde `application/json` zorunlu (basit CSRF koruması); girişte deneme sınırı var.
-- Görev güncellemeleri `apps/api/src/lib/taskService.ts` içinde tek noktadan yapılır: değişen her alan için zaman akışına kayıt düşülür, varsa not en önemli değişikliğe (tercihen durum) eklenir.
+- Görev işlemleri `apps/api/src/lib/taskService.ts` içinde tek noktadan yapılır ve her biri önce yetki kuralını kontrol eder; değişiklikler geçmişe kayıt olarak düşer.
+- Açılır menüler ve pencereler sayfanın en üst katmanında (portal) açılır; kartların ya da panellerin altında kalmaz, ekrana sığmazsa yukarı açılır.
 - "Bugün" ve "gecikti" hesapları `APP_TZ` (varsayılan `Europe/Istanbul`) saat dilimine göre yapılır.
 
 ## Üretime alırken

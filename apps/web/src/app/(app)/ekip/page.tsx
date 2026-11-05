@@ -1,44 +1,33 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { ROLE_META, type Role, type UserWithStats } from "@gorev/shared";
-import { ChevronDown, Copy, KeyRound, Pencil, RefreshCw, UserCheck, UserMinus, UserPlus } from "lucide-react";
-import { useCreateUser, useRemoveUser, useUpdateUser, useUsers } from "@/lib/queries";
+import type { UserWithStats } from "@gorev/shared";
+import { ChevronDown, Copy, RefreshCw } from "lucide-react";
+import { useCreateUser, useRemoveUser, useResetPassword, useTasks, useUsers } from "@/lib/queries";
 import { errorMessage } from "@/lib/api";
 import { useSession } from "@/hooks/useSession";
 import { cn, randomPassword } from "@/lib/utils";
 import { Avatar } from "@/components/Avatar";
 import { Modal } from "@/components/Modal";
-import { MenuItem, Popover } from "@/components/Popover";
+import { TaskRow } from "@/components/TaskRow";
 import { useToast } from "@/components/Toast";
-import { Button, ErrorBox, Field, Input, Select, Spinner } from "@/components/ui";
-
-type Editing = { mode: "create" } | { mode: "edit"; user: UserWithStats } | { mode: "password"; user: UserWithStats };
+import { Button, Card, ErrorBox, Field, Input, Spinner } from "@/components/ui";
 
 export default function TeamPage() {
   const me = useSession();
   const isAdmin = me.role === "ADMIN";
   const { data: users, isLoading } = useUsers();
-  const [editing, setEditing] = useState<Editing | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [resetting, setResetting] = useState<UserWithStats | null>(null);
   const [removing, setRemoving] = useState<UserWithStats | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
-  const update = useUpdateUser();
-  const toast = useToast();
-
-  const active = users?.filter((u) => u.active) ?? [];
-  const inactive = users?.filter((u) => !u.active) ?? [];
 
   return (
-    <div className="mx-auto flex max-w-[1104px] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <header className="flex flex-wrap items-end gap-4">
-        <div className="min-w-0 flex-[1_1_240px]">
-          <h1 className="text-3xl font-bold text-ink">Ekip</h1>
-          <p className="text-base text-ink-muted">{active.length} kişi çalışıyor. Bir kişinin işlerini görmek için adına tıkla.</p>
-        </div>
+    <div className="mx-auto flex max-w-[960px] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <header className="flex flex-wrap items-center gap-4">
+        <h1 className="flex-[1_1_220px] text-3xl font-bold text-ink">Ekip</h1>
         {isAdmin && (
-          <Button variant="primary" onClick={() => setEditing({ mode: "create" })}>
-            <UserPlus className="size-5" aria-hidden="true" /> Ekibe kişi ekle
+          <Button variant="primary" onClick={() => setAdding(true)}>
+            Kişi ekle
           </Button>
         )}
       </header>
@@ -48,262 +37,166 @@ export default function TeamPage() {
           <Spinner />
         </div>
       ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {active.map((u) => (
-              <MemberCard
-                key={u.id}
-                user={u}
-                isMe={u.id === me.id}
-                isAdmin={isAdmin}
-                onEdit={() => setEditing({ mode: "edit", user: u })}
-                onPassword={() => setEditing({ mode: "password", user: u })}
-                onRemove={() => setRemoving(u)}
-              />
-            ))}
-          </div>
-
-          {inactive.length > 0 && (
-            <div>
-              <Button variant="ghost" onClick={() => setShowInactive(!showInactive)} aria-expanded={showInactive}>
-                <ChevronDown className={`size-5 transition-transform ${showInactive ? "" : "-rotate-90"}`} aria-hidden="true" />
-                Ekipten ayrılanlar ({inactive.length})
-              </Button>
-              {showInactive && (
-                <div className="mt-3 divide-y divide-line rounded-lg border border-line bg-surface">
-                  {inactive.map((u) => (
-                    <div key={u.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                      <Avatar user={u} size="md" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-semibold text-ink">{u.name}</p>
-                        <p className="truncate text-sm text-ink-muted">{u.email}</p>
-                      </div>
-                      <Link href={`/gorevler?scope=all&assigneeId=${u.id}&status=all`} className="flex min-h-11 items-center text-base font-semibold text-accent hover:underline">
-                        Geçmiş işlerini gör
-                      </Link>
-                      {isAdmin && (
-                        <Button
-                          onClick={() =>
-                            update.mutate(
-                              { id: u.id, active: true },
-                              { onSuccess: () => toast(`${u.name} ekibe geri eklendi.`), onError: (e) => toast(e.message, { tone: "error" }) },
-                            )
-                          }
-                        >
-                          <UserCheck className="size-5" aria-hidden="true" /> Yeniden ekle
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </>
+        <Card className="divide-y divide-line">
+          {users?.map((u) => (
+            <Person key={u.id} user={u} isMe={u.id === me.id} isAdmin={isAdmin} onReset={() => setResetting(u)} onRemove={() => setRemoving(u)} />
+          ))}
+        </Card>
       )}
 
-      {editing?.mode === "create" && <UserFormModal onClose={() => setEditing(null)} />}
-      {editing?.mode === "edit" && <UserFormModal user={editing.user} onClose={() => setEditing(null)} />}
-      {editing?.mode === "password" && <ResetPasswordModal user={editing.user} onClose={() => setEditing(null)} />}
+      {adding && <AddModal onClose={() => setAdding(false)} />}
+      {resetting && <ResetModal user={resetting} onClose={() => setResetting(null)} />}
       {removing && <RemoveModal user={removing} onClose={() => setRemoving(null)} />}
     </div>
   );
 }
 
-function MemberCard({
+function Person({
   user,
   isMe,
   isAdmin,
-  onEdit,
-  onPassword,
+  onReset,
   onRemove,
 }: {
   user: UserWithStats;
   isMe: boolean;
   isAdmin: boolean;
-  onEdit: () => void;
-  onPassword: () => void;
+  onReset: () => void;
   onRemove: () => void;
 }) {
-  const s = user.stats;
+  const [open, setOpen] = useState(false);
+  const { data: tasks, isLoading } = useTasks({ scope: "user", userId: user.id, status: "open" }, open);
+
   return (
-    <article className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5 shadow-card">
-      <div className="flex items-start gap-3">
-        <Avatar user={user} size="lg" />
-        <div className="min-w-0 flex-1">
-          <Link href={`/gorevler?scope=all&assigneeId=${user.id}`} className="block truncate text-lg font-bold text-ink hover:underline">
-            {user.name}
-            {isMe && <span className="text-base font-normal text-ink-muted"> (sen)</span>}
-          </Link>
-          <p className="truncate text-sm text-ink-muted">{user.title || user.email}</p>
-          {user.role === "ADMIN" && (
-            <span className="mt-1.5 inline-block rounded-sm bg-accent-soft px-2 py-0.5 text-sm font-semibold text-ink">{ROLE_META.ADMIN.label}</span>
-          )}
-        </div>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-2">
-        <MiniStat label="Açık iş" value={s.open} />
-        <MiniStat label="Devam eden" value={s.inProgress} className="text-progress-ink" />
-        <MiniStat label="Geciken" value={s.overdue} className={s.overdue ? "text-danger" : undefined} />
-        <MiniStat label="Biten" value={s.done} className="text-done-ink" />
-      </dl>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Link href={`/gorevler?scope=all&assigneeId=${user.id}`} className="flex min-h-11 flex-1 items-center text-base font-semibold text-accent hover:underline">
-          İşlerini gör
-        </Link>
+    <div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="flex min-w-0 flex-[1_1_260px] cursor-pointer items-center gap-3 text-left"
+        >
+          <Avatar user={user} size="lg" />
+          <span className="min-w-0">
+            <span className="block truncate text-lg font-bold text-ink">
+              {user.name}
+              {isMe && <span className="text-base font-normal text-ink-muted"> (sen)</span>}
+            </span>
+            <span className="block text-[15px] text-ink-muted">
+              {user.openCount ? `${user.openCount} açık görev` : "Açık görevi yok"}
+              {user.role === "ADMIN" && " · Yönetici"}
+            </span>
+          </span>
+          <ChevronDown className={cn("ml-auto size-5 shrink-0 text-ink-muted transition-transform", open && "rotate-180")} aria-hidden="true" />
+        </button>
         {isAdmin && (
-          <Popover
-            align="end"
-            trigger={({ toggle }) => (
-              <Button size="sm" className="h-11" onClick={toggle}>
-                İşlemler <ChevronDown className="size-4" aria-hidden="true" />
+          <div className="flex gap-2">
+            <Button size="sm" className="h-11" onClick={onReset}>
+              Şifre sıfırla
+            </Button>
+            {!isMe && (
+              <Button size="sm" variant="ghost" className="h-11 text-danger" onClick={onRemove}>
+                Çıkar
               </Button>
             )}
-          >
-            {(close) => (
-              <>
-                <MenuItem
-                  onClick={() => {
-                    close();
-                    onEdit();
-                  }}
-                >
-                  <Pencil className="size-5" aria-hidden="true" /> Bilgilerini düzenle
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    close();
-                    onPassword();
-                  }}
-                >
-                  <KeyRound className="size-5" aria-hidden="true" /> Şifresini sıfırla
-                </MenuItem>
-                {!isMe && (
-                  <MenuItem
-                    danger
-                    onClick={() => {
-                      close();
-                      onRemove();
-                    }}
-                  >
-                    <UserMinus className="size-5" aria-hidden="true" /> Ekipten çıkar
-                  </MenuItem>
-                )}
-              </>
-            )}
-          </Popover>
+          </div>
         )}
       </div>
-    </article>
-  );
-}
-
-function MiniStat({ label, value, className }: { label: string; value: number; className?: string }) {
-  return (
-    <div className="rounded-md bg-paper px-3 py-2">
-      <dt className="text-sm text-ink-muted">{label}</dt>
-      <dd className={cn("text-xl font-bold text-ink tabular-nums", className)}>{value}</dd>
+      {open && (
+        <div className="border-t border-line bg-paper">
+          {isLoading ? (
+            <div className="flex justify-center py-6">
+              <Spinner />
+            </div>
+          ) : !tasks?.length ? (
+            <p className="px-5 py-4 text-base text-ink-muted">Açık görevi yok.</p>
+          ) : (
+            <div className="divide-y divide-line">
+              {tasks.map((t) => (
+                <TaskRow key={t.id} task={t} show="from" status />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function CredentialBox({ email, password }: { email: string; password: string }) {
+function Credentials({ email, password }: { email: string; password: string }) {
   const toast = useToast();
-  const text = `Görev Takip giriş bilgilerin:\nAdres: ${typeof window !== "undefined" ? location.origin : ""}\nE-posta: ${email}\nŞifre: ${password}`;
+  const text = `Görev Takip\nAdres: ${typeof window !== "undefined" ? location.origin : ""}\nE-posta: ${email}\nŞifre: ${password}`;
   return (
-    <div className="space-y-3">
-      <div className="rounded-md bg-done p-4 text-base text-done-ink">
-        <p className="font-semibold">Hazır. Bu bilgileri kişiyle paylaş:</p>
-        <pre className="mt-2 font-sans text-base whitespace-pre-wrap text-ink">{text}</pre>
-      </div>
+    <div className="flex flex-col gap-3">
+      <p className="text-base text-ink">Bu bilgileri kişiyle paylaş:</p>
+      <pre className="rounded-md bg-done p-4 font-sans text-base whitespace-pre-wrap text-ink">{text}</pre>
       <Button
-        className="w-full"
         onClick={() => {
           void navigator.clipboard?.writeText(text);
-          toast("Giriş bilgileri kopyalandı.");
+          toast("Kopyalandı.");
         }}
       >
-        <Copy className="size-5" aria-hidden="true" /> Bilgileri kopyala
+        <Copy className="size-5" aria-hidden="true" /> Kopyala
       </Button>
-      <p className="text-sm text-ink-muted">Kişi giriş yaptıktan sonra menüden kendi şifresini değiştirebilir.</p>
     </div>
   );
 }
 
-function UserFormModal({ user, onClose }: { user?: UserWithStats; onClose: () => void }) {
+function PasswordField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <Field label="Şifre">
+      <div className="flex gap-2">
+        <Input value={value} onChange={(e) => onChange(e.target.value)} minLength={6} required />
+        <Button onClick={() => onChange(randomPassword())}>
+          <RefreshCw className="size-5" aria-hidden="true" /> Yenile
+        </Button>
+      </div>
+    </Field>
+  );
+}
+
+function AddModal({ onClose }: { onClose: () => void }) {
   const create = useCreateUser();
-  const update = useUpdateUser();
-  const toast = useToast();
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [title, setTitle] = useState(user?.title ?? "");
-  const [role, setRole] = useState<Role>(user?.role ?? "MEMBER");
-  const [password, setPassword] = useState(() => (user ? "" : randomPassword()));
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [admin, setAdmin] = useState(false);
+  const [password, setPassword] = useState(() => randomPassword());
   const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [done, setDone] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      if (user) {
-        await update.mutateAsync({ id: user.id, name, email, title: title || null, role });
-        toast("Bilgiler kaydedildi.");
-        onClose();
-      } else {
-        await create.mutateAsync({ name, email, title: title || null, role, password });
-        setCreated({ email, password });
-      }
+      await create.mutateAsync({ name, email, password, role: admin ? "ADMIN" : "MEMBER" });
+      setDone(true);
     } catch (err) {
       setError(errorMessage(err));
     }
   };
 
   return (
-    <Modal open onClose={onClose} title={user ? "Kişiyi düzenle" : created ? "Kişi eklendi" : "Ekibe kişi ekle"}>
-      {created ? (
-        <CredentialBox {...created} />
+    <Modal open onClose={onClose} title={done ? "Kişi eklendi" : "Kişi ekle"}>
+      {done ? (
+        <Credentials email={email} password={password} />
       ) : (
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="flex flex-col gap-4">
           <Field label="Ad soyad">
             <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required />
           </Field>
           <Field label="E-posta">
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Unvan / Birim" hint="İsteğe bağlı">
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="örn. Muhasebe" />
-            </Field>
-            <Field label="Yetki">
-              <Select value={role} onChange={(e) => setRole(e.target.value as Role)} className="w-full">
-                <option value="MEMBER">{ROLE_META.MEMBER.label}</option>
-                <option value="ADMIN">{ROLE_META.ADMIN.label}</option>
-              </Select>
-            </Field>
-          </div>
-          {!user && (
-            <Field label="Geçici şifre" hint="Otomatik oluşturuldu; istersen değiştir.">
-              <div className="flex gap-2">
-                <Input value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-                <Button onClick={() => setPassword(randomPassword())}>
-                  <RefreshCw className="size-5" aria-hidden="true" /> Yenile
-                </Button>
-              </div>
-            </Field>
-          )}
-          <p className="text-sm text-ink-muted">
-            <b className="text-ink">Üye</b> görev ekler, verir ve günceller. <b className="text-ink">Yönetici</b> ayrıca ekibe kişi ekleyip çıkarabilir.
-          </p>
+          <PasswordField value={password} onChange={setPassword} />
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base text-ink">
+            <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} className="size-5" />
+            Yönetici olsun (kişi ekleyip çıkarabilir)
+          </label>
           {error && <ErrorBox>{error}</ErrorBox>}
-          <div className="flex flex-wrap justify-end gap-3 pt-1">
-            <Button type="button" onClick={onClose}>
-              Vazgeç
-            </Button>
-            <Button type="submit" variant="primary" loading={create.isPending || update.isPending}>
-              {user ? "Değişiklikleri kaydet" : "Kişiyi ekle"}
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button onClick={onClose}>Vazgeç</Button>
+            <Button type="submit" variant="primary" loading={create.isPending}>
+              Ekle
             </Button>
           </div>
         </form>
@@ -312,44 +205,35 @@ function UserFormModal({ user, onClose }: { user?: UserWithStats; onClose: () =>
   );
 }
 
-function ResetPasswordModal({ user, onClose }: { user: UserWithStats; onClose: () => void }) {
-  const update = useUpdateUser();
+function ResetModal({ user, onClose }: { user: UserWithStats; onClose: () => void }) {
+  const reset = useResetPassword();
   const [password, setPassword] = useState(() => randomPassword());
-  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
   return (
     <Modal open onClose={onClose} title={`${user.name}: şifre sıfırla`}>
       {done ? (
-        <CredentialBox email={user.email} password={password} />
+        <Credentials email={user.email} password={password} />
       ) : (
         <form
-          className="space-y-4"
+          className="flex flex-col gap-4"
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
             try {
-              await update.mutateAsync({ id: user.id, password });
+              await reset.mutateAsync({ id: user.id, password });
               setDone(true);
             } catch (err) {
               setError(errorMessage(err));
             }
           }}
         >
-          <Field label="Yeni şifre">
-            <div className="flex gap-2">
-              <Input value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
-              <Button onClick={() => setPassword(randomPassword())}>
-                <RefreshCw className="size-5" aria-hidden="true" /> Yenile
-              </Button>
-            </div>
-          </Field>
+          <PasswordField value={password} onChange={setPassword} />
           {error && <ErrorBox>{error}</ErrorBox>}
           <div className="flex flex-wrap justify-end gap-3">
-            <Button type="button" onClick={onClose}>
-              Vazgeç
-            </Button>
-            <Button type="submit" variant="primary" loading={update.isPending}>
-              Şifreyi değiştir
+            <Button onClick={onClose}>Vazgeç</Button>
+            <Button type="submit" variant="primary" loading={reset.isPending}>
+              Kaydet
             </Button>
           </div>
         </form>
@@ -374,32 +258,23 @@ function RemoveModal({ user, onClose }: { user: UserWithStats; onClose: () => vo
             loading={remove.isPending}
             onClick={async () => {
               try {
-                const r = await remove.mutateAsync(user.id);
-                toast(
-                  `${user.name} ekipten çıkarıldı.` + (r.unassigned ? ` ${r.unassigned} açık görevi artık kimsede değil.` : ""),
-                );
+                await remove.mutateAsync(user.id);
+                toast(`${user.name} ekipten çıkarıldı.`);
                 onClose();
               } catch (e) {
                 toast(errorMessage(e), { tone: "error" });
               }
             }}
           >
-            Evet, ekipten çıkar
+            Çıkar
           </Button>
         </>
       }
     >
-      <div className="space-y-3 text-base text-ink">
-        <p>
-          <b>{user.name}</b> artık giriş yapamayacak ve görev atanacaklar listesinde görünmeyecek.
-        </p>
-        {user.stats.open > 0 && (
-          <p className="rounded-md bg-blocked px-3.5 py-2.5 text-blocked-ink">
-            Üzerindeki <b>{user.stats.open} açık görev</b> kimseye verilmemiş olarak kalacak; bunları başkasına verebilirsin.
-          </p>
-        )}
-        <p className="text-sm text-ink-muted">Geçmiş kayıtlar korunur. İstersen daha sonra ekibe geri ekleyebilirsin.</p>
-      </div>
+      <p className="text-base text-ink">
+        <b>{user.name}</b> artık giriş yapamayacak.
+        {user.openCount > 0 && ` ${user.openCount} açık görevi, görevi verenlere geri döner.`}
+      </p>
     </Modal>
   );
 }

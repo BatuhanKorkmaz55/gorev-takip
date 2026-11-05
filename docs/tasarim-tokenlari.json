@@ -1,36 +1,139 @@
 {
   "name": "Görev Takip",
-  "version": 1,
+  "version": 2,
   "color": {
-    "themes": [{ "id": "light", "name": "Açık" }],
+    "themes": [
+      {
+        "id": "light",
+        "name": "Açık"
+      }
+    ],
     "tokens": [
-      { "name": "paper", "value": "#F5F3EF", "usage": "Sayfa zemini. Üzerinde ink (14.9:1) ve ink-muted (6.3:1) okunur." },
-      { "name": "surface", "value": "#FFFFFF", "usage": "Kartlar, kenar çubuğu, detay paneli, giriş alanları. ink 16.5:1, ink-muted 7:1." },
-      { "name": "surface-sunken", "value": "#ECE9E3", "usage": "Grup başlıkları, seçili olmayan sekme zemini, satır üzerine gelme. ink-muted 5.7:1." },
-      { "name": "line", "value": "#E2DED6", "usage": "Kart kenarı ve satır ayırıcı; yalnızca süs, kontrol kenarı için kullanılmaz." },
-      { "name": "line-strong", "value": "#8B867C", "usage": "Giriş alanı, onay kutusu ve ikincil buton kenarı (beyaz üzerinde 3.6:1)." },
-      { "name": "ink", "value": "#1C1F24", "usage": "Ana metin, görev başlıkları, ana buton dolgusu." },
-      { "name": "ink-muted", "value": "#545A63", "usage": "İkincil metin: kişi, tarih, etiket, yardımcı açıklama. En küçük boyut 14px." },
-      { "name": "on-ink", "value": "#FFFFFF", "usage": "ink dolgulu butonun üzerindeki metin ve ikon." },
-      { "name": "accent", "value": "#1F5FD6", "usage": "Bağlantı, odak halkası, seçili menü ikonu. Beyaz üzerinde 5.7:1." },
-      { "name": "accent-soft", "value": "#E7EEFC", "usage": "Seçili menü öğesi zemini. Üzerinde ink 14.2:1, accent 4.9:1." },
-      { "name": "brand-signal", "value": "#F0B43C", "usage": "Logodaki onay işareti ve kapak; yalnızca süs, metin rengi olarak kullanılmaz." },
-      { "name": "status-todo", "value": "#ECEDEF", "usage": "“Yapılacak” etiketinin zemini." },
-      { "name": "status-todo-ink", "value": "#3B4048", "usage": "“Yapılacak” etiketinin metni (status-todo üzerinde 8.9:1)." },
-      { "name": "status-todo-dot", "value": "#7D838C", "usage": "“Yapılacak” simgesi (beyaz üzerinde 3.8:1)." },
-      { "name": "status-progress", "value": "#E3ECFD", "usage": "“Devam ediyor” etiketinin zemini." },
-      { "name": "status-progress-ink", "value": "#1749AD", "usage": "“Devam ediyor” metni (6.8:1)." },
-      { "name": "status-progress-dot", "value": "#2F6BE0", "usage": "“Devam ediyor” simgesi ve ilerleme çubuğu (4.9:1)." },
-      { "name": "status-blocked", "value": "#FDEDD8", "usage": "“Beklemede” etiketinin zemini; ayrıca “Bugün” tarih vurgusu." },
-      { "name": "status-blocked-ink", "value": "#8A4600", "usage": "“Beklemede” metni ve “Bugün” tarihi (6.2:1)." },
-      { "name": "status-blocked-dot", "value": "#D97706", "usage": "“Beklemede” simgesi (3.2:1, yalnızca ikon)." },
-      { "name": "status-done", "value": "#DFF3E7", "usage": "“Tamamlandı” etiketinin zemini." },
-      { "name": "status-done-ink", "value": "#156036", "usage": "“Tamamlandı” metni (6.6:1)." },
-      { "name": "status-done-dot", "value": "#1E8A4C", "usage": "“Tamamlandı” simgesi ve alt adım ilerlemesi (4.4:1)." },
-      { "name": "status-cancel", "value": "#EEECE9", "usage": "“İptal” etiketinin zemini." },
-      { "name": "status-cancel-ink", "value": "#5E5A55", "usage": "“İptal” metni (5.8:1)." },
-      { "name": "danger", "value": "#B3261E", "usage": "Gecikme, hata, silme. Beyaz üzerinde 6.5:1." },
-      { "name": "danger-soft", "value": "#FCE8E6", "usage": "Gecikmiş tarih ve hata kutusu zemini (danger 5.6:1)." }
+      {
+        "name": "paper",
+        "value": "#F5F3EF",
+        "usage": "Sayfa zemini. Üzerinde ink (14.9:1) ve ink-muted (6.3:1) okunur."
+      },
+      {
+        "name": "surface",
+        "value": "#FFFFFF",
+        "usage": "Kartlar, kenar çubuğu, detay paneli, giriş alanları. ink 16.5:1, ink-muted 7:1."
+      },
+      {
+        "name": "surface-sunken",
+        "value": "#ECE9E3",
+        "usage": "Grup başlıkları, seçili olmayan sekme zemini, satır üzerine gelme. ink-muted 5.7:1."
+      },
+      {
+        "name": "line",
+        "value": "#E2DED6",
+        "usage": "Kart kenarı ve satır ayırıcı; yalnızca süs, kontrol kenarı için kullanılmaz."
+      },
+      {
+        "name": "line-strong",
+        "value": "#8B867C",
+        "usage": "Giriş alanı, onay kutusu ve ikincil buton kenarı (beyaz üzerinde 3.6:1)."
+      },
+      {
+        "name": "ink",
+        "value": "#1C1F24",
+        "usage": "Ana metin, görev başlıkları, ana buton dolgusu."
+      },
+      {
+        "name": "ink-muted",
+        "value": "#545A63",
+        "usage": "İkincil metin: kişi, tarih, etiket, yardımcı açıklama. En küçük boyut 14px."
+      },
+      {
+        "name": "on-ink",
+        "value": "#FFFFFF",
+        "usage": "ink dolgulu butonun üzerindeki metin ve ikon."
+      },
+      {
+        "name": "accent",
+        "value": "#1F5FD6",
+        "usage": "Bağlantı, odak halkası, seçili menü ikonu. Beyaz üzerinde 5.7:1."
+      },
+      {
+        "name": "accent-soft",
+        "value": "#E7EEFC",
+        "usage": "Seçili menü öğesi zemini. Üzerinde ink 14.2:1, accent 4.9:1."
+      },
+      {
+        "name": "brand-signal",
+        "value": "#F0B43C",
+        "usage": "Logodaki onay işareti ve kapak; yalnızca süs, metin rengi olarak kullanılmaz."
+      },
+      {
+        "name": "status-todo",
+        "value": "#ECEDEF",
+        "usage": "“Yapılacak” etiketinin zemini."
+      },
+      {
+        "name": "status-todo-ink",
+        "value": "#3B4048",
+        "usage": "“Yapılacak” etiketinin metni (status-todo üzerinde 8.9:1)."
+      },
+      {
+        "name": "status-todo-dot",
+        "value": "#7D838C",
+        "usage": "“Yapılacak” simgesi (beyaz üzerinde 3.8:1)."
+      },
+      {
+        "name": "status-progress",
+        "value": "#E3ECFD",
+        "usage": "“Devam ediyor” etiketinin zemini."
+      },
+      {
+        "name": "status-progress-ink",
+        "value": "#1749AD",
+        "usage": "“Devam ediyor” metni (6.8:1)."
+      },
+      {
+        "name": "status-progress-dot",
+        "value": "#2F6BE0",
+        "usage": "“Devam ediyor” simgesi ve ilerleme çubuğu (4.9:1)."
+      },
+      {
+        "name": "status-blocked",
+        "value": "#FDEDD8",
+        "usage": "“Bugün” tarih vurgusunun zemini."
+      },
+      {
+        "name": "status-blocked-ink",
+        "value": "#8A4600",
+        "usage": "“Bugün” tarihinin metni (status-blocked üzerinde 6.2:1, beyaz üzerinde 7.1:1)."
+      },
+      {
+        "name": "status-blocked-dot",
+        "value": "#D97706",
+        "usage": "Uyarı simgesi (3.2:1, yalnızca ikon)."
+      },
+      {
+        "name": "status-done",
+        "value": "#DFF3E7",
+        "usage": "“Tamamlandı” etiketinin zemini."
+      },
+      {
+        "name": "status-done-ink",
+        "value": "#156036",
+        "usage": "“Tamamlandı” metni (6.6:1)."
+      },
+      {
+        "name": "status-done-dot",
+        "value": "#1E8A4C",
+        "usage": "“Tamamlandı” simgesi ve alt adım ilerlemesi (4.4:1)."
+      },
+      {
+        "name": "danger",
+        "value": "#B3261E",
+        "usage": "Gecikme, hata, silme. Beyaz üzerinde 6.5:1."
+      },
+      {
+        "name": "danger-soft",
+        "value": "#FCE8E6",
+        "usage": "Gecikmiş tarih ve hata kutusu zemini (danger 5.6:1)."
+      }
     ]
   },
   "type": {
@@ -43,61 +146,180 @@
         "name": "Başlıklar",
         "family": "sans",
         "styles": [
-          { "name": "display", "fontSize": "30px", "lineHeight": "38px", "fontWeight": 700 },
-          { "name": "title-lg", "fontSize": "24px", "lineHeight": "32px", "fontWeight": 700 },
-          { "name": "title", "fontSize": "20px", "lineHeight": "28px", "fontWeight": 700 },
-          { "name": "heading", "fontSize": "17px", "lineHeight": "24px", "fontWeight": 700 }
+          {
+            "name": "display",
+            "fontSize": "30px",
+            "lineHeight": "38px",
+            "fontWeight": 700
+          },
+          {
+            "name": "title-lg",
+            "fontSize": "24px",
+            "lineHeight": "32px",
+            "fontWeight": 700
+          },
+          {
+            "name": "title",
+            "fontSize": "20px",
+            "lineHeight": "28px",
+            "fontWeight": 700
+          },
+          {
+            "name": "heading",
+            "fontSize": "17px",
+            "lineHeight": "24px",
+            "fontWeight": 700
+          }
         ]
       },
       {
         "name": "Metin",
         "family": "sans",
         "styles": [
-          { "name": "body", "fontSize": "16px", "lineHeight": "24px", "fontWeight": 400 },
-          { "name": "body-strong", "fontSize": "16px", "lineHeight": "24px", "fontWeight": 600 },
-          { "name": "small", "fontSize": "14px", "lineHeight": "20px", "fontWeight": 400 },
-          { "name": "label", "fontSize": "14px", "lineHeight": "20px", "fontWeight": 600 }
+          {
+            "name": "body",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": 400
+          },
+          {
+            "name": "body-strong",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": 600
+          },
+          {
+            "name": "small",
+            "fontSize": "14px",
+            "lineHeight": "20px",
+            "fontWeight": 400
+          },
+          {
+            "name": "label",
+            "fontSize": "14px",
+            "lineHeight": "20px",
+            "fontWeight": 600
+          }
         ]
       },
       {
         "name": "Sayılar",
         "family": "sans",
-        "styles": [{ "name": "numeral", "fontSize": "34px", "lineHeight": "40px", "fontWeight": 700 }]
+        "styles": [
+          {
+            "name": "numeral",
+            "fontSize": "34px",
+            "lineHeight": "40px",
+            "fontWeight": 700
+          }
+        ]
       }
     ]
   },
   "spacing": {
     "tokens": [
-      { "name": "space-1", "value": "4px", "usage": "Simge ile metin arası." },
-      { "name": "space-2", "value": "8px", "usage": "Etiketler, çipler arası." },
-      { "name": "space-3", "value": "12px", "usage": "Satır içi öğeler arası, buton iç boşluğu." },
-      { "name": "space-4", "value": "16px", "usage": "Satır ve kart iç boşluğu." },
-      { "name": "space-6", "value": "24px", "usage": "Kart ve bölüm arası." },
-      { "name": "space-8", "value": "32px", "usage": "Sayfa kenar boşluğu (masaüstü)." },
-      { "name": "space-12", "value": "48px", "usage": "Büyük bölüm araları." }
+      {
+        "name": "space-1",
+        "value": "4px",
+        "usage": "Simge ile metin arası."
+      },
+      {
+        "name": "space-2",
+        "value": "8px",
+        "usage": "Etiketler, çipler arası."
+      },
+      {
+        "name": "space-3",
+        "value": "12px",
+        "usage": "Satır içi öğeler arası, buton iç boşluğu."
+      },
+      {
+        "name": "space-4",
+        "value": "16px",
+        "usage": "Satır ve kart iç boşluğu."
+      },
+      {
+        "name": "space-6",
+        "value": "24px",
+        "usage": "Kart ve bölüm arası."
+      },
+      {
+        "name": "space-8",
+        "value": "32px",
+        "usage": "Sayfa kenar boşluğu (masaüstü)."
+      },
+      {
+        "name": "space-12",
+        "value": "48px",
+        "usage": "Büyük bölüm araları."
+      }
     ]
   },
   "radius": {
     "tokens": [
-      { "name": "radius-sm", "value": "6px", "usage": "Durum etiketi, çip, onay kutusu." },
-      { "name": "radius-md", "value": "10px", "usage": "Buton, giriş alanı, menü öğesi." },
-      { "name": "radius-lg", "value": "16px", "usage": "Kart, panel, pencere." },
-      { "name": "radius-full", "value": "9999px", "usage": "Kişi rozeti (avatar)." }
+      {
+        "name": "radius-sm",
+        "value": "6px",
+        "usage": "Durum etiketi, çip, onay kutusu."
+      },
+      {
+        "name": "radius-md",
+        "value": "10px",
+        "usage": "Buton, giriş alanı, menü öğesi."
+      },
+      {
+        "name": "radius-lg",
+        "value": "16px",
+        "usage": "Kart, panel, pencere."
+      },
+      {
+        "name": "radius-full",
+        "value": "9999px",
+        "usage": "Kişi rozeti (avatar)."
+      }
     ]
   },
   "size": {
     "tokens": [
-      { "name": "control-h", "value": "44px", "usage": "Her buton, giriş ve menü öğesinin en az yüksekliği (dokunma hedefi)." },
-      { "name": "quickadd-h", "value": "56px", "usage": "Hızlı görev ekleme kutusunun yüksekliği." },
-      { "name": "row-min-h", "value": "64px", "usage": "Görev satırının en az yüksekliği." },
-      { "name": "sidebar-w", "value": "256px", "usage": "Masaüstü kenar çubuğu genişliği." },
-      { "name": "content-max", "value": "1040px", "usage": "İçerik sütununun en fazla genişliği (okunur satır boyu)." }
+      {
+        "name": "control-h",
+        "value": "44px",
+        "usage": "Her buton, giriş ve menü öğesinin en az yüksekliği (dokunma hedefi)."
+      },
+      {
+        "name": "quickadd-h",
+        "value": "56px",
+        "usage": "Hızlı görev ekleme kutusunun yüksekliği."
+      },
+      {
+        "name": "row-min-h",
+        "value": "64px",
+        "usage": "Görev satırının en az yüksekliği."
+      },
+      {
+        "name": "sidebar-w",
+        "value": "256px",
+        "usage": "Masaüstü kenar çubuğu genişliği."
+      },
+      {
+        "name": "content-max",
+        "value": "1040px",
+        "usage": "İçerik sütununun en fazla genişliği (okunur satır boyu)."
+      }
     ]
   },
   "shadow": {
     "tokens": [
-      { "name": "shadow-card", "value": "0 1px 2px rgba(28,31,36,0.06)", "usage": "Kartların hafif kaldırılması." },
-      { "name": "shadow-pop", "value": "0 16px 40px rgba(28,31,36,0.18)", "usage": "Açılır menü, pencere, detay paneli." }
+      {
+        "name": "shadow-card",
+        "value": "0 1px 2px rgba(28,31,36,0.06)",
+        "usage": "Kartların hafif kaldırılması."
+      },
+      {
+        "name": "shadow-pop",
+        "value": "0 16px 40px rgba(28,31,36,0.18)",
+        "usage": "Açılır menü, pencere, detay paneli."
+      }
     ]
   }
 }

@@ -5,127 +5,95 @@ import { prisma } from "../lib/prisma";
 import { HttpError, notFound } from "../lib/http";
 import { currentUser, hashPassword, requireAdmin } from "../lib/auth";
 import { toUserLite } from "../lib/serialize";
-import { keyToDate, todayKey } from "../lib/dates";
 
 export const usersRouter = Router();
 
-/** Ekip listesi + her kişinin iş yükü */
+/** Ekip: aktif kişiler ve açık görev sayıları */
 usersRouter.get("/", async (_req, res) => {
-  const today = keyToDate(todayKey());
-  const [users, byStatus, overdue] = await Promise.all([
-    prisma.user.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }] }),
-    prisma.task.groupBy({ by: ["assigneeId", "status"], _count: { _all: true }, where: { assigneeId: { not: null } } }),
-    prisma.task.groupBy({
-      by: ["assigneeId"],
-      _count: { _all: true },
-      where: { assigneeId: { not: null }, status: { in: OPEN_STATUSES }, dueDate: { lt: today } },
-    }),
+  const [users, open] = await Promise.all([
+    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.task.groupBy({ by: ["assigneeId"], _count: { _all: true }, where: { status: { in: OPEN_STATUSES } } }),
   ]);
-
-  const result: UserWithStats[] = users.map((u) => {
-    const rows = byStatus.filter((r) => r.assigneeId === u.id);
-    const n = (s: string) => rows.find((r) => r.status === s)?._count._all ?? 0;
-    return {
-      ...toUserLite(u),
-      createdAt: u.createdAt.toISOString(),
-      stats: {
-        open: n("TODO") + n("IN_PROGRESS") + n("BLOCKED"),
-        inProgress: n("IN_PROGRESS"),
-        blocked: n("BLOCKED"),
-        done: n("DONE"),
-        overdue: overdue.find((o) => o.assigneeId === u.id)?._count._all ?? 0,
-      },
-    };
-  });
+  const result: UserWithStats[] = users.map((u) => ({
+    ...toUserLite(u),
+    openCount: open.find((o) => o.assigneeId === u.id)?._count._all ?? 0,
+  }));
   res.json({ users: result });
 });
 
+/** Kişi ekle. Daha önce çıkarılmış bir e-posta gelirse o hesap yeniden açılır. */
 usersRouter.post("/", requireAdmin, async (req, res) => {
   const input = createUserSchema.parse(req.body);
-  const exists = await prisma.user.findUnique({ where: { email: input.email } });
-  if (exists) throw new HttpError(409, "Bu e-posta ile kayıtlı bir kullanıcı var");
+  const passwordHash = await hashPassword(input.password);
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing?.active) throw new HttpError(409, "Bu e-posta ile ekipte zaten biri var");
+  if (existing) {
+    const user = await prisma.user.update({
+      where: { id: existing.id },
+      data: { active: true, name: input.name, role: input.role, passwordHash },
+    });
+    res.status(200).json({ user: toUserLite(user), reactivated: true });
+    return;
+  }
   const count = await prisma.user.count();
   const user = await prisma.user.create({
-    data: {
-      name: input.name,
-      email: input.email,
-      passwordHash: await hashPassword(input.password),
-      role: input.role,
-      title: input.title || null,
-      color: AVATAR_COLORS[count % AVATAR_COLORS.length],
-    },
+    data: { name: input.name, email: input.email, role: input.role, passwordHash, color: AVATAR_COLORS[count % AVATAR_COLORS.length] },
   });
   res.status(201).json({ user: toUserLite(user) });
 });
 
+/** Şifre sıfırla */
 usersRouter.patch("/:id", requireAdmin, async (req, res) => {
-  const me = currentUser(req);
-  const id = String(req.params.id);
   const input = updateUserSchema.parse(req.body);
-  const target = await prisma.user.findUnique({ where: { id } });
-  if (!target) throw notFound("Kullanıcı");
-
-  if (target.id === me.id && (input.active === false || input.role === "MEMBER")) {
-    throw new HttpError(400, "Kendi yönetici yetkinizi veya hesabınızı kapatamazsınız");
-  }
-  if (input.email && input.email !== target.email) {
-    const exists = await prisma.user.findUnique({ where: { email: input.email } });
-    if (exists) throw new HttpError(409, "Bu e-posta ile kayıtlı bir kullanıcı var");
-  }
-
+  const target = await prisma.user.findUnique({ where: { id: String(req.params.id) } });
+  if (!target) throw notFound("Kişi");
   const user = await prisma.user.update({
-    where: { id },
-    data: {
-      name: input.name,
-      email: input.email,
-      role: input.role,
-      active: input.active,
-      title: input.title === undefined ? undefined : input.title || null,
-      passwordHash: input.password ? await hashPassword(input.password) : undefined,
-    },
+    where: { id: target.id },
+    data: { passwordHash: input.password ? await hashPassword(input.password) : undefined },
   });
   res.json({ user: toUserLite(user) });
 });
 
 /**
- * Kullanıcıyı ekipten çıkarır. Geçmişi (oluşturduğu görevler, notları) olan kullanıcılar
- * silinmez, pasife alınır; böylece kayıtlar korunur. Açık görevlerinin ataması kaldırılır.
+ * Ekipten çıkar. Açık görevleri, görevi veren kişiye geçer; veren de çıkarılan kişiyse çıkaran yöneticiye.
+ * Geçmişi olan kişi silinmez, pasife alınır (kayıtlar korunur).
  */
 usersRouter.delete("/:id", requireAdmin, async (req, res) => {
   const me = currentUser(req);
   const id = String(req.params.id);
-  if (id === me.id) throw new HttpError(400, "Kendinizi ekipten çıkaramazsınız");
-  const target = await prisma.user.findUnique({
-    where: { id },
-    include: { _count: { select: { createdTasks: true, activities: true } } },
-  });
-  if (!target) throw notFound("Kullanıcı");
+  if (id === me.id) throw new HttpError(400, "Kendini ekipten çıkaramazsın");
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target || !target.active) throw notFound("Kişi");
 
   const openTasks = await prisma.task.findMany({
     where: { assigneeId: id, status: { in: OPEN_STATUSES } },
-    select: { id: true },
+    include: { creator: true },
   });
-  const unassigned = openTasks.length;
-  if (unassigned) {
+  for (const t of openTasks) {
+    const to = t.creatorId === id || !t.creator.active ? me : t.creator;
     await prisma.$transaction([
-      prisma.task.updateMany({ where: { id: { in: openTasks.map((t) => t.id) } }, data: { assigneeId: null } }),
-      prisma.activity.createMany({
-        data: openTasks.map((t) => ({
+      prisma.task.update({ where: { id: t.id }, data: { assigneeId: to.id } }),
+      prisma.activity.create({
+        data: {
           taskId: t.id,
           userId: me.id,
-          type: "ASSIGNEE" as const,
-          message: `${target.name} ekipten çıkarıldığı için atama kaldırıldı`,
-          meta: { fromId: id, fromName: target.name, toId: null, toName: null },
-        })),
+          type: "ASSIGNEE",
+          message: `${target.name} ekipten çıkarıldığı için görev ${to.name} kişisine geçti`,
+          meta: { fromId: id, fromName: target.name, toId: to.id, toName: to.name },
+        },
       }),
     ]);
   }
 
-  if (target._count.createdTasks === 0 && target._count.activities === 0) {
+  const refs = await prisma.user.findUnique({
+    where: { id },
+    include: { _count: { select: { createdTasks: true, assignedTasks: true, activities: true } } },
+  });
+  const c = refs!._count;
+  if (c.createdTasks + c.assignedTasks + c.activities === 0) {
     await prisma.user.delete({ where: { id } });
-    res.json({ result: "deleted", unassigned });
-    return;
+  } else {
+    await prisma.user.update({ where: { id }, data: { active: false } });
   }
-  await prisma.user.update({ where: { id }, data: { active: false } });
-  res.json({ result: "deactivated", unassigned });
+  res.json({ ok: true, moved: openTasks.length });
 });

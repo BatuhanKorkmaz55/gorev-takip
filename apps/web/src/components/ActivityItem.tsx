@@ -1,136 +1,52 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { PRIORITY_META, STATUS_META, formatDateKey, type ActivityDTO, type Priority, type TaskStatus } from "@gorev/shared";
-import { useTaskDrawer } from "@/hooks/useTaskDrawer";
+import { longDate, type ActivityDTO, type TaskStatus } from "@gorev/shared";
 import { useSession } from "@/hooks/useSession";
-import { useDeleteActivity } from "@/lib/queries";
-import { cn, fullDateTime, timeAgo } from "@/lib/utils";
-import { Avatar } from "./Avatar";
+import { fullDateTime, timeAgo } from "@/lib/utils";
 
-const B = ({ children, className }: { children: ReactNode; className?: string }) => <b className={cn("font-semibold text-ink", className)}>{children}</b>;
-
-const STATUS_TEXT: Record<TaskStatus, string> = {
-  TODO: "text-todo-ink",
-  IN_PROGRESS: "text-progress-ink",
-  BLOCKED: "text-blocked-ink",
-  DONE: "text-done-ink",
-  CANCELLED: "text-cancel-ink",
-};
-
-function describe(a: ActivityDTO, meId: string): ReactNode {
+/** "Ayşe Yılmaz tamamladı" / "Sen tamamladın" */
+function sentence(a: ActivityDTO, meId: string): string {
+  const self = a.user.id === meId;
+  const v = (third: string, second: string) => (self ? second : third);
   const m = (a.meta ?? {}) as Record<string, unknown>;
+  const target = (id: unknown, name: unknown) => (id === meId ? "sana" : `${String(name)} kişisine`);
   switch (a.type) {
     case "CREATED":
-      return m.assigneeName && m.assigneeId !== a.user.id ? (
-        <>
-          görevi oluşturdu ve <B>{m.assigneeId === meId ? "sana" : String(m.assigneeName)}</B> verdi
-        </>
-      ) : (
-        <>görevi oluşturdu</>
-      );
-    case "COMMENT":
-      return <>not ekledi</>;
+      return m.assigneeId && m.assigneeId !== a.user.id
+        ? `görevi ${target(m.assigneeId, m.assigneeName)} ${v("verdi", "verdin")}`
+        : v("görevi oluşturdu", "görevi oluşturdun");
     case "STATUS": {
       const to = m.to as TaskStatus;
-      return (
-        <>
-          durumu <B className={STATUS_TEXT[to]}>{STATUS_META[to]?.label}</B> yaptı
-        </>
-      );
+      if (to === "DONE") return v("tamamladı", "tamamladın");
+      if (to === "IN_PROGRESS") return v("başladı", "başladın");
+      return v("yeniden açtı", "yeniden açtın");
     }
+    case "COMMENT":
+      return v("not ekledi", "not ekledin");
     case "ASSIGNEE":
-      return m.toName ? (
-        <>
-          görevi <B>{m.toId === meId ? "sana" : String(m.toName)}</B> verdi
-        </>
-      ) : (
-        <>görevin sorumlusunu kaldırdı</>
-      );
-    case "PRIORITY":
-      return (
-        <>
-          önceliği <B>{PRIORITY_META[m.to as Priority]?.label}</B> yaptı
-        </>
-      );
+      return `görevi ${target(m.toId, m.toName)} ${v("verdi", "verdin")}`;
     case "DUE_DATE":
-      return m.to ? (
-        <>
-          bitiş tarihini <B>{formatDateKey(String(m.to))}</B> yaptı
-        </>
-      ) : (
-        <>bitiş tarihini kaldırdı</>
-      );
-    case "PROGRESS":
-      return (
-        <>
-          ilerlemeyi <B>%{String(m.to)}</B> yaptı
-        </>
-      );
+      return m.to ? `son tarihi ${longDate(String(m.to))} ${v("yaptı", "yaptın")}` : v("son tarihi kaldırdı", "son tarihi kaldırdın");
     case "TITLE":
-      return (
-        <>
-          başlığı <B>“{String(m.to)}”</B> olarak değiştirdi
-        </>
-      );
+      return v("başlığı değiştirdi", "başlığı değiştirdin");
     case "DESCRIPTION":
-      return <>açıklamayı güncelledi</>;
-    case "TAGS":
-      return <>etiketleri güncelledi</>;
-    case "CHECKLIST": {
-      const verb = m.action === "checked" ? "tamamladı" : m.action === "unchecked" ? "geri aldı" : "ekledi";
-      return (
-        <>
-          <B>“{String(m.text)}”</B> adımını {verb}
-        </>
-      );
-    }
+      return v("açıklamayı güncelledi", "açıklamayı güncelledin");
     default:
-      return null;
+      return "";
   }
 }
 
-/** Geçmişteki bir kayıt: kim, ne yaptı, ne zaman; varsa notu. */
-export function ActivityItem({ a, showTask, noteBg = "bg-paper" }: { a: ActivityDTO; showTask?: boolean; noteBg?: string }) {
-  const drawer = useTaskDrawer();
+export function ActivityItem({ a }: { a: ActivityDTO }) {
   const me = useSession();
-  const del = useDeleteActivity();
-  const canDelete = a.type === "COMMENT" && (a.user.id === me.id || me.role === "ADMIN");
-
   return (
-    <article className="flex gap-3">
-      <Avatar user={a.user} size="md" />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <p className="text-base text-ink">
-          <B>{a.user.id === me.id ? "Sen" : a.user.name}</B> {describe(a, me.id)}
-        </p>
-        {showTask && a.task && (
-          <button
-            type="button"
-            onClick={() => drawer.open(a.task!.number)}
-            className="cursor-pointer self-start text-left text-sm font-semibold text-accent hover:text-accent-strong hover:underline"
-          >
-            {a.task.title}
-          </button>
-        )}
-        {a.message && <p className={cn("rounded-md px-3 py-2.5 text-base whitespace-pre-wrap break-words text-ink", noteBg)}>{a.message}</p>}
-        <div className="flex items-center gap-3 text-sm text-ink-muted">
-          <time dateTime={a.createdAt} title={fullDateTime(a.createdAt)}>
-            {timeAgo(a.createdAt)}
-          </time>
-          {canDelete && (
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm("Bu not silinsin mi?")) del.mutate(a.id);
-              }}
-              className="cursor-pointer font-semibold text-danger hover:underline"
-            >
-              Notu sil
-            </button>
-          )}
-        </div>
-      </div>
+    <article className="flex flex-col gap-1.5">
+      <p className="text-base text-ink">
+        <b className="font-semibold">{a.user.id === me.id ? "Sen" : a.user.name}</b> {sentence(a, me.id)}{" "}
+        <time dateTime={a.createdAt} title={fullDateTime(a.createdAt)} className="text-sm text-ink-muted">
+          · {timeAgo(a.createdAt)}
+        </time>
+      </p>
+      {a.message && <p className="rounded-md border border-line bg-surface px-3 py-2.5 text-base whitespace-pre-wrap break-words text-ink">{a.message}</p>}
     </article>
   );
 }

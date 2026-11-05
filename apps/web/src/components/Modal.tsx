@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "./ui";
@@ -32,8 +33,9 @@ export function Modal({
     return () => document.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
-  if (!open) return null;
-  return (
+  if (!open || typeof document === "undefined") return null;
+  // Sayfanın en üst katmanında aç: panel ya da kart içinde kullanılsa bile hiçbir şeyin altında kalmaz.
+  return createPortal(
     <div className="animate-fade-in fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-[10vh]" onMouseDown={onClose}>
       <div
         role="dialog"
@@ -51,6 +53,7 @@ export function Modal({
         <div className="px-6 py-5">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-3 border-t border-line px-6 py-4">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

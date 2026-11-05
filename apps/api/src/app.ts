@@ -7,8 +7,6 @@ import { requireAuth } from "./lib/auth";
 import { authRouter } from "./routes/auth";
 import { usersRouter } from "./routes/users";
 import { tasksRouter } from "./routes/tasks";
-import { activityRouter } from "./routes/activity";
-import { dashboardRouter } from "./routes/dashboard";
 
 export function createApp() {
   const app = express();
@@ -26,8 +24,6 @@ export function createApp() {
   app.use("/api/auth", authRouter);
   app.use("/api/users", requireAuth, usersRouter);
   app.use("/api/tasks", requireAuth, tasksRouter);
-  app.use("/api/activity", requireAuth, activityRouter);
-  app.use("/api/dashboard", requireAuth, dashboardRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Uç nokta bulunamadı" });

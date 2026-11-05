@@ -32,25 +32,6 @@ export function diffDays(a: string, b: string): number {
 const MONTHS = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
 const WEEKDAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 
-/** "Bugün", "Yarın", "Dün", "3 gün gecikti", "Cuma", "12 Kas" gibi insan dostu tarih */
-export function humanDue(dueKey: string, todayKey: string): string {
-  const diff = diffDays(todayKey, dueKey);
-  if (diff === 0) return "Bugün";
-  if (diff === 1) return "Yarın";
-  if (diff === -1) return "Dün";
-  if (diff < 0) return `${-diff} gün gecikti`;
-  const [y, m, d] = dueKey.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  if (diff < 7) return WEEKDAYS[dt.getUTCDay()];
-  const [ty] = todayKey.split("-").map(Number);
-  return `${d} ${MONTHS[m - 1]}${y !== ty ? ` ${y}` : ""}`;
-}
-
-export function formatDateKey(dueKey: string): string {
-  const [y, m, d] = dueKey.split("-").map(Number);
-  return `${d} ${MONTHS[m - 1]} ${y}`;
-}
-
 export type DueTone = "overdue" | "today" | "tomorrow" | "soon" | "later";
 
 /**
