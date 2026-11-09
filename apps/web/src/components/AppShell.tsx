@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Inbox, KeyRound, LogOut, Plus, Send, Users } from "lucide-react";
+import { Inbox, KeyRound, LogOut, Moon, Plus, Send, Sun, Users } from "lucide-react";
 import { useMe, useTasks } from "@/lib/queries";
 import { api } from "@/lib/api";
 import { SessionCtx } from "@/hooks/useSession";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
@@ -127,6 +128,7 @@ function UserMenu({ compact }: { compact?: boolean }) {
   const router = useRouter();
   const qc = useQueryClient();
   const [pwOpen, setPwOpen] = useState(false);
+  const { theme, toggle: toggleTheme } = useTheme();
   if (!me) return null;
   const logout = async () => {
     await api.post("/auth/logout");
@@ -162,6 +164,10 @@ function UserMenu({ compact }: { compact?: boolean }) {
               }}
             >
               <KeyRound className="size-5" aria-hidden="true" /> Şifremi değiştir
+            </MenuItem>
+            <MenuItem onClick={toggleTheme}>
+              {theme === "dark" ? <Sun className="size-5" aria-hidden="true" /> : <Moon className="size-5" aria-hidden="true" />}
+              {theme === "dark" ? "Açık tema" : "Koyu tema"}
             </MenuItem>
             <MenuItem danger onClick={logout}>
               <LogOut className="size-5" aria-hidden="true" /> Çıkış yap

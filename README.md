@@ -2,7 +2,7 @@
 
 Ekip için **sade** iş takibi. Üç iş var, o kadar: **görev ver, görevi yap, tamamla.**
 
-Arayüz okunurluk için tasarlandı: Atkinson Hyperlegible Next yazı tipi, 16px metin, en az 4.5:1 kontrast, en az 44px düğmeler. Durumlar yazıyla, tarihler kelimeyle ("Bugün", "Yarın", "2 gün gecikti") gösterilir. Tasarım kuralları: [docs/TASARIM.md](docs/TASARIM.md).
+Arayüz okunurluk için tasarlandı: Atkinson Hyperlegible Next yazı tipi, 16px metin, en az 4.5:1 kontrast, en az 44px düğmeler. Varsayılan koyu tema; açık tema kullanıcı menüsünden seçilir. Durumlar yazıyla, tarihler kelimeyle ("Bugün", "Yarın", "2 gün gecikti") gösterilir. Tasarım kuralları: [docs/TASARIM.md](docs/TASARIM.md).
 
 **Monorepo:** Next.js 16 (web) · Node.js + Express 5 (API) · PostgreSQL + Prisma · pnpm workspaces
 

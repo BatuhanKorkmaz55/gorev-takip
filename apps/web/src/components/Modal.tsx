@@ -36,7 +36,7 @@ export function Modal({
   if (!open || typeof document === "undefined") return null;
   // Sayfanın en üst katmanında aç: panel ya da kart içinde kullanılsa bile hiçbir şeyin altında kalmaz.
   return createPortal(
-    <div className="animate-fade-in fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-[10vh]" onMouseDown={onClose}>
+    <div className="animate-fade-in fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-scrim p-4 pt-[10vh]" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"

@@ -32,7 +32,7 @@ export function TaskDrawer() {
 
   return (
     <>
-      <div className="animate-fade-in fixed inset-0 z-40 bg-ink/25" onClick={drawer.close} aria-hidden="true" />
+      <div className="animate-fade-in fixed inset-0 z-40 bg-scrim" onClick={drawer.close} aria-hidden="true" />
       <aside
         role="dialog"
         aria-modal="true"

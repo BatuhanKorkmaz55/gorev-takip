@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className="animate-pop-in pointer-events-auto flex w-full max-w-lg items-center gap-3 rounded-lg bg-ink py-2 pr-2 pl-4 text-base text-white shadow-pop"
+            className="animate-pop-in pointer-events-auto flex w-full max-w-lg items-center gap-3 rounded-lg bg-ink py-2 pr-2 pl-4 text-base text-on-ink shadow-pop"
           >
             {t.tone === "success" ? (
               <CircleCheck className="size-5 shrink-0 text-signal" aria-hidden="true" />
@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             {t.action && (
               <button
                 type="button"
-                className="h-10 shrink-0 cursor-pointer rounded-md bg-white px-3 text-[15px] font-semibold text-ink hover:bg-white/90"
+                className="h-10 shrink-0 cursor-pointer rounded-md bg-on-ink px-3 text-[15px] font-semibold text-ink hover:bg-on-ink/90"
                 onClick={() => {
                   t.action?.onClick();
                   dismiss(t.id);
@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             )}
             <button
               type="button"
-              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/80 hover:bg-white/10 hover:text-white"
+              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-on-ink/80 hover:bg-on-ink/10 hover:text-on-ink"
               onClick={() => dismiss(t.id)}
               aria-label="Bildirimi kapat"
             >

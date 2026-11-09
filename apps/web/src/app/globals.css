@@ -15,6 +15,8 @@
   --color-ink: #1c1f24;
   --color-ink-muted: #545a63;
   --color-on-ink: #ffffff;
+  --color-on-danger: #ffffff;
+  --color-scrim: rgba(28, 31, 36, 0.4);
   --color-accent: #1f5fd6;
   --color-accent-strong: #1749ad;
   --color-accent-soft: #e7eefc;
@@ -56,6 +58,54 @@
   --text-2xl--line-height: 32px;
   --text-3xl: 30px;
   --text-3xl--line-height: 38px;
+}
+
+/*
+ * Koyu tema (varsayılan). <html data-theme="dark"> sunucuda yazılır;
+ * kişi "Açık tema"yı seçerse data-theme="light" olur ve yukarıdaki değerler geçerlidir.
+ * Tüm metin çiftleri koyu zeminde de en az 4.5:1.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-paper: #15171b;
+  --color-surface: #1e2126;
+  --color-sunken: #262a30;
+  --color-line: #31363d;
+  --color-line-strong: #7d848e;
+  --color-ink: #e9ebee;
+  --color-ink-muted: #a7adb6;
+  --color-on-ink: #15171b;
+  --color-on-danger: #1c0b0a;
+  --color-accent: #7aa7ff;
+  --color-accent-strong: #a3c2ff;
+  --color-accent-soft: #1f2e4d;
+  --color-signal: #8f5a00;
+  --color-scrim: rgba(0, 0, 0, 0.6);
+
+  --color-todo: #2a2e35;
+  --color-todo-ink: #c9ced5;
+  --color-todo-dot: #8d949e;
+  --color-progress: #1c2c4a;
+  --color-progress-ink: #a9c4ff;
+  --color-progress-dot: #5b8def;
+  --color-blocked: #3a2a14;
+  --color-blocked-ink: #f3c27a;
+  --color-blocked-dot: #e0952f;
+  --color-done: #15321f;
+  --color-done-ink: #8fd9a8;
+  --color-done-dot: #3fae6a;
+  --color-cancel: #2a2826;
+  --color-cancel-ink: #b9b3ac;
+  --color-danger: #ff8a80;
+  --color-danger-soft: #3d1e1c;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 html,

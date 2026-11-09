@@ -31,6 +31,7 @@ Yalnızca üç sayfa vardır; her yerde tek ana düğme **"Görev ver"**dir.
 - **Yazı tipi:** Atkinson Hyperlegible Next (Google Fonts, latin-ext). Gövde `body` 16px; hiçbir metin `small` (14px) altına inmez. Sayfa başlığı `display`, görev detay başlığı `title-lg`.
 - **Renk:** nötr öncelikli. Zemin `paper`, kartlar `surface`, metin `ink` / `ink-muted`. Ana düğme `ink` dolgu + `on-ink` metin. Vurgu `accent` (bağlantı, odak, seçili menü).
 - **Kontrast:** tüm metin çiftleri en az 4.5:1; kontrol kenarları `line-strong`. `line` yalnızca ayırıcıdır.
+- **Tema:** varsayılan **koyu**. Açık tema kullanıcı menüsündeki "Açık tema" ile seçilir ve tarayıcıda hatırlanır (`gt-theme`). Koyu değerler `globals.css` içinde `:root[data-theme="dark"]` altında aynı token adlarıyla tanımlı; bileşenlerde sabit renk (`white`, `#…`) kullanılmaz, her zaman token kullanılır. Dolgulu yüzeyde metin `on-ink` / `on-danger`, örtü `scrim`.
 - **Köşe ve gölge:** düğme/giriş `radius-md`, kart `radius-lg`, etiket `radius-sm`; kartta `shadow-card`, açılır parçada `shadow-pop`.
 
 ## Durum dili

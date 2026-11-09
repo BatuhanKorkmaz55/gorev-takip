@@ -12,14 +12,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1c1f24",
+  themeColor: "#15171b",
   width: "device-width",
   initialScale: 1,
 };
 
+const THEME_SCRIPT = `try{if(localStorage.getItem("gt-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={atkinson.variable}>
+    <html lang="tr" data-theme="dark" className={atkinson.variable} suppressHydrationWarning>
+      <head>
+        {/* Varsayılan koyu tema; kişi açık temayı seçtiyse sayfa çizilmeden önce uygula. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>
